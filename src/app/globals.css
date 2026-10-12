@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #171710;
+  --paper: #fff8dc;
+  --yellow: #ffdb1f;
+  --orange: #ff7139;
+  --mint: #b8f5cf;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--paper);
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image: linear-gradient(rgba(23, 23, 16, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(23, 23, 16, 0.07) 1px, transparent 1px);
+  background-size: 28px 28px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 4px solid #2762ff;
+  outline-offset: 3px;
+}
+
+::selection {
+  color: var(--paper);
+  background: var(--ink);
+}
+
+@keyframes loading-stripes {
+  to {
+    background-position: 32px 0;
+  }
+}
+
+.loading-stripes {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--yellow),
+    var(--yellow) 8px,
+    var(--ink) 8px,
+    var(--ink) 16px
+  );
+  animation: loading-stripes 0.7s linear infinite;
+}

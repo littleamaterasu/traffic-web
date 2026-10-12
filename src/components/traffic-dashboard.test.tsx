@@ -14,7 +14,7 @@ describe("TrafficDashboard", () => {
       vi.fn().mockResolvedValue({ ok: true, json: async () => trafficFixture }),
     );
 
-    render(<TrafficDashboard />);
+    const { container } = render(<TrafficDashboard />);
     await user.type(screen.getByLabelText("Tên miền hoặc URL website"), "vercel.com");
     await user.click(screen.getByRole("button", { name: /phân tích ngay/i }));
 
@@ -35,6 +35,9 @@ describe("TrafficDashboard", () => {
     expect(screen.getByText("7 phút 09 giây")).toBeInTheDocument();
     expect(screen.getByText("CPC (USD/click)")).toBeInTheDocument();
     expect(screen.getByText("Giá trị traffic (USD/tháng)")).toBeInTheDocument();
+    expect(container.querySelectorAll(".responsive-table")).toHaveLength(4);
+    expect(container.querySelector(".overflow-x-auto")).not.toBeInTheDocument();
+    expect(container.querySelectorAll("td[data-label]").length).toBeGreaterThan(0);
   });
 
   it("hiển thị lỗi từ API", async () => {

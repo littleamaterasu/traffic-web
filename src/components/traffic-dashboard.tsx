@@ -132,8 +132,8 @@ function Results({ data }: { data: TrafficResponse }) {
       <div className="grid gap-8 xl:grid-cols-2">
         <Panel title="Lượt truy cập theo tháng" badge="Đơn vị: lượt/tháng">
           {data.monthly_visits.length ? (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[460px] border-collapse text-left">
+            <div className="responsive-table-wrap">
+              <table className="responsive-table text-left">
                 <thead>
                   <tr className="border-b-2 border-[#171710] bg-[#f0ebd5] text-xs uppercase tracking-wider">
                     <th className="px-5 py-3">Tháng</th>
@@ -147,9 +147,9 @@ function Results({ data }: { data: TrafficResponse }) {
                     const change = previous ? (item.visits - previous) / previous : null;
                     return (
                       <tr key={item.month} className="border-b-2 border-[#171710] last:border-b-0">
-                        <td className="px-5 py-4 font-black">{formatMonth(item.month)}</td>
-                        <td className="px-5 py-4 text-right font-mono font-bold">{formatNumber(item.visits)}</td>
-                        <td className="px-5 py-4 text-right font-black">
+                        <td data-label="Tháng" className="px-5 py-4 font-black">{formatMonth(item.month)}</td>
+                        <td data-label="Lượt truy cập/tháng" className="px-5 py-4 text-right font-mono font-bold">{formatNumber(item.visits)}</td>
+                        <td data-label="So tháng trước" className="px-5 py-4 text-right font-black">
                           {change == null ? "—" : `${change >= 0 ? "+" : ""}${(change * 100).toFixed(1)}%`}
                         </td>
                       </tr>
@@ -167,12 +167,12 @@ function Results({ data }: { data: TrafficResponse }) {
           {sources.length ? (
             <div className="divide-y-2 divide-[#171710]">
               {sources.map((source) => (
-                <div key={source.key} className="grid grid-cols-[minmax(120px,1fr)_2fr_64px] items-center gap-3 px-4 py-3">
-                  <span className="text-sm font-black">{source.label}</span>
-                  <div className="h-5 border-2 border-[#171710] bg-[#f0ebd5]" aria-hidden="true">
+                <div key={source.key} className="grid grid-cols-[minmax(0,1fr)_64px] items-center gap-3 px-4 py-3 sm:grid-cols-[minmax(120px,1fr)_2fr_64px]">
+                  <span className="min-w-0 text-sm font-black">{source.label}</span>
+                  <div className="order-3 col-span-2 h-5 border-2 border-[#171710] bg-[#f0ebd5] sm:order-none sm:col-span-1" aria-hidden="true">
                     <div className="h-full bg-[#ff7139]" style={{ width: `${Math.min((source.value ?? 0) * 100, 100)}%` }} />
                   </div>
-                  <span className="text-right font-mono text-sm font-bold">{formatPercent(source.value)}</span>
+                  <span className="order-2 text-right font-mono text-sm font-bold sm:order-none">{formatPercent(source.value)}</span>
                 </div>
               ))}
             </div>
@@ -185,8 +185,8 @@ function Results({ data }: { data: TrafficResponse }) {
       <div className="grid gap-8 xl:grid-cols-[0.85fr_1.15fr]">
         <Panel title="Quốc gia hàng đầu" badge="Tỷ trọng lượt truy cập (%)">
           {data.top_regions.length ? (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[380px] border-collapse text-left">
+            <div className="responsive-table-wrap">
+              <table className="responsive-table text-left">
                 <thead>
                   <tr className="border-b-2 border-[#171710] bg-[#f0ebd5] text-xs uppercase tracking-wider">
                     <th className="px-5 py-3">Quốc gia</th>
@@ -196,11 +196,11 @@ function Results({ data }: { data: TrafficResponse }) {
                 <tbody>
                   {data.top_regions.map((region) => (
                     <tr key={region.country} className="border-b-2 border-[#171710] last:border-b-0">
-                      <td className="px-5 py-4 font-bold">
+                      <td data-label="Quốc gia" className="px-5 py-4 font-bold">
                         <span className="mr-3 border-2 border-[#171710] bg-[#b8f5cf] px-2 py-1 font-mono text-xs font-black">{region.country}</span>
                         {region.name}
                       </td>
-                      <td className="px-5 py-4 text-right font-mono font-bold">{formatPercent(region.share)}</td>
+                      <td data-label="Tỷ trọng lượt truy cập" className="px-5 py-4 text-right font-mono font-bold">{formatPercent(region.share)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -213,8 +213,8 @@ function Results({ data }: { data: TrafficResponse }) {
 
         <Panel title="Từ khóa hàng đầu">
           {data.top_keywords.length ? (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[620px] border-collapse text-left">
+            <div className="responsive-table-wrap">
+              <table className="responsive-table text-left">
                 <thead>
                   <tr className="border-b-2 border-[#171710] bg-[#f0ebd5] text-xs uppercase tracking-wider">
                     <th className="px-5 py-3">Từ khóa</th>
@@ -226,10 +226,10 @@ function Results({ data }: { data: TrafficResponse }) {
                 <tbody>
                   {data.top_keywords.map((keyword) => (
                     <tr key={keyword.name} className="border-b-2 border-[#171710] last:border-b-0">
-                      <td className="px-5 py-4 font-black">{keyword.name}</td>
-                      <td className="px-5 py-4 text-right font-mono font-bold">{formatCompactNumber(keyword.volume)}</td>
-                      <td className="px-5 py-4 text-right font-mono font-bold">{formatCurrency(keyword.cpc)}</td>
-                      <td className="px-5 py-4 text-right font-mono font-bold">{formatCompactCurrency(keyword.estimated_value)}</td>
+                      <td data-label="Từ khóa" className="px-5 py-4 font-black">{keyword.name}</td>
+                      <td data-label="Lượt tìm kiếm/tháng" className="px-5 py-4 text-right font-mono font-bold">{formatCompactNumber(keyword.volume)}</td>
+                      <td data-label="CPC (USD/click)" className="px-5 py-4 text-right font-mono font-bold">{formatCurrency(keyword.cpc)}</td>
+                      <td data-label="Giá trị traffic (USD/tháng)" className="px-5 py-4 text-right font-mono font-bold">{formatCompactCurrency(keyword.estimated_value)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -243,8 +243,8 @@ function Results({ data }: { data: TrafficResponse }) {
 
       <Panel title="AI assistant referrals" badge="Tỷ trọng trong AI traffic (%)">
         {aiTrends.length ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[620px] border-collapse text-left">
+          <div className="responsive-table-wrap">
+            <table className="responsive-table text-left">
               <thead>
                 <tr className="border-b-2 border-[#171710] bg-[#f0ebd5] text-xs uppercase tracking-wider">
                   <th className="px-5 py-3">Assistant</th>
@@ -261,12 +261,12 @@ function Results({ data }: { data: TrafficResponse }) {
                   const delta = latest != null && previous != null ? latest - previous : null;
                   return (
                     <tr key={trend.name} className="border-b-2 border-[#171710] last:border-b-0">
-                      <td className="px-5 py-4 font-black">{trend.name}</td>
-                      <td className="px-5 py-4 text-right font-mono font-bold">{latest == null ? "—" : `${latest.toFixed(1)}%`}</td>
-                      <td className="px-5 py-4 text-right font-mono font-black">
+                      <td data-label="Assistant" className="px-5 py-4 font-black">{trend.name}</td>
+                      <td data-label="Tỷ trọng mới nhất" className="px-5 py-4 text-right font-mono font-bold">{latest == null ? "—" : `${latest.toFixed(1)}%`}</td>
+                      <td data-label="Thay đổi (điểm %)" className="px-5 py-4 text-right font-mono font-black">
                         {delta == null ? "—" : `${delta >= 0 ? "+" : ""}${delta.toFixed(1)} pt`}
                       </td>
-                      <td className="px-5 py-4 font-mono text-xs font-bold">
+                      <td data-label="Lịch sử tỷ trọng" data-stack="true" className="px-5 py-4 font-mono text-xs font-bold">
                         {sorted.map((point) => `${point.date.slice(0, 7)}: ${point.value.toFixed(1)}%`).join("  /  ") || "—"}
                       </td>
                     </tr>

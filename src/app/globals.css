@@ -63,3 +63,63 @@ input:focus-visible {
   );
   animation: loading-stripes 0.7s linear infinite;
 }
+
+.responsive-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.responsive-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+@media (max-width: 639px) {
+  .responsive-table,
+  .responsive-table tbody,
+  .responsive-table tr,
+  .responsive-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .responsive-table thead {
+    display: none;
+  }
+
+  .responsive-table tr {
+    padding: 0.35rem 1rem;
+  }
+
+  .responsive-table td {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: start;
+    padding: 0.65rem 0 !important;
+    border-bottom: 1px dashed rgba(23, 23, 16, 0.4);
+    text-align: right !important;
+    overflow-wrap: anywhere;
+  }
+
+  .responsive-table td:last-child {
+    border-bottom: 0;
+  }
+
+  .responsive-table td::before {
+    content: attr(data-label);
+    text-align: left;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.68rem;
+    font-weight: 900;
+    line-height: 1.35;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .responsive-table td[data-stack="true"] {
+    grid-template-columns: 1fr;
+    text-align: left !important;
+  }
+}

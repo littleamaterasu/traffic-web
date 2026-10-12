@@ -1,6 +1,6 @@
 # Traffic Check
 
-Dashboard Next.js local để tra cứu traffic website qua TabAPI. Giao diện hiển thị tổng quan, lịch sử 3 tháng, nguồn traffic, quốc gia, từ khóa và AI referrals.
+Dashboard Next.js local để tra cứu traffic website qua TabAPI. Giao diện hiển thị tổng quan, lịch sử traffic theo số tháng cấu hình, nguồn traffic, quốc gia, từ khóa và AI referrals.
 
 ## Yêu cầu
 
@@ -17,9 +17,10 @@ Sao chép `.env.example` thành `.env.local`, sau đó thay giá trị mẫu:
 
 ```env
 TABAPI_KEY=sk_your_key_here
+TRAFFIC_MONTHS=3
 ```
 
-Không commit `.env.local`. API key chỉ được đọc bởi route backend `/api/traffic` và không được gửi xuống trình duyệt.
+`TRAFFIC_MONTHS` nhận số nguyên từ `3` đến `12`; nếu bỏ trống, ứng dụng mặc định dùng `3`. Khởi động lại server sau khi thay đổi giá trị. Không commit `.env.local`. API key chỉ được đọc bởi route backend `/api/traffic` và không được gửi xuống trình duyệt.
 
 ## Chạy local
 
@@ -49,5 +50,5 @@ Test dùng mock response và không gọi TabAPI thật.
 
 ## Lưu ý dữ liệu
 
-- Mỗi lần lấy dữ liệu mới yêu cầu 3 tháng lịch sử và có thể tiêu tối đa 3 credits.
+- Mỗi lần lấy dữ liệu mới yêu cầu số tháng trong `TRAFFIC_MONTHS`. TabAPI tính credits theo số tháng thực tế trả về, trong phạm vi 3–12 tháng.
 - Các chỉ số là dữ liệu ước tính theo tháng, phù hợp để so sánh và theo dõi xu hướng; không thay thế Google Analytics hoặc dữ liệu first-party.

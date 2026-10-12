@@ -7,6 +7,11 @@ import { TrafficDashboard } from "./traffic-dashboard";
 describe("TrafficDashboard", () => {
   afterEach(() => vi.unstubAllGlobals());
 
+  it("hiển thị số tháng lịch sử đã cấu hình", () => {
+    render(<TrafficDashboard trafficMonths={6} />);
+    expect(screen.getByText("Website intelligence / 6 tháng")).toBeInTheDocument();
+  });
+
   it("tìm kiếm và hiển thị toàn bộ nhóm dữ liệu", async () => {
     const user = userEvent.setup();
     vi.stubGlobal(

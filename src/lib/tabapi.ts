@@ -23,10 +23,10 @@ export class TrafficApiError extends Error {
   }
 }
 
-function vietnameseError(status: number, code?: string): string {
+function vietnameseError(status: number, months: number, code?: string): string {
   if (status === 400 || code === "invalid_domain") return "Tên miền không hợp lệ.";
   if (status === 402 || code === "insufficient_credits") return "Tài khoản TabAPI không đủ credits.";
-  if (status === 422 || code === "unprocessable") return "Tên miền chưa có đủ 3 tháng dữ liệu.";
+  if (status === 422 || code === "unprocessable") return `Tên miền chưa có đủ ${months} tháng dữ liệu.`;
   if (status === 502 || code === "upstream_error") return "TabAPI đang gặp sự cố. Vui lòng thử lại sau.";
   return "Không thể lấy dữ liệu website lúc này.";
 }
@@ -42,13 +42,14 @@ async function readError(response: Response): Promise<ApiErrorBody | null> {
 export async function fetchTrafficFromTabApi(
   domain: string,
   apiKey: string,
+  months: number,
   fetchImpl: typeof fetch = fetch,
 ): Promise<TrafficResponse> {
   let response: Response;
 
   try {
     response = await fetchImpl(
-      `${TABAPI_BASE_URL}/domains/${encodeURIComponent(domain)}/traffic?months=3`,
+      `${TABAPI_BASE_URL}/domains/${encodeURIComponent(domain)}/traffic?months=${months}`,
       {
         headers: {
           Accept: "application/json",
@@ -65,7 +66,7 @@ export async function fetchTrafficFromTabApi(
     const body = await readError(response);
     const code = body?.error?.code ?? "tabapi_error";
     const status = [400, 402, 422, 502].includes(response.status) ? response.status : 502;
-    throw new TrafficApiError(status, code, vietnameseError(response.status, code));
+    throw new TrafficApiError(status, code, vietnameseError(response.status, months, code));
   }
 
   return (await response.json()) as TrafficResponse;
@@ -86,26 +87,28 @@ function pruneCache(now: number): void {
 export async function getTraffic(
   domain: string,
   apiKey: string,
+  months: number,
   fetchImpl: typeof fetch = fetch,
 ): Promise<TrafficResponse> {
   const now = Date.now();
-  const cached = successCache.get(domain);
+  const cacheKey = `${domain}:${months}`;
+  const cached = successCache.get(cacheKey);
 
   if (cached && cached.expiresAt > now) return cached.data;
-  if (cached) successCache.delete(domain);
+  if (cached) successCache.delete(cacheKey);
 
-  const existingRequest = inFlightRequests.get(domain);
+  const existingRequest = inFlightRequests.get(cacheKey);
   if (existingRequest) return existingRequest;
 
-  const request = fetchTrafficFromTabApi(domain, apiKey, fetchImpl)
+  const request = fetchTrafficFromTabApi(domain, apiKey, months, fetchImpl)
     .then((data) => {
       pruneCache(Date.now());
-      successCache.set(domain, { data, expiresAt: Date.now() + CACHE_TTL_MS });
+      successCache.set(cacheKey, { data, expiresAt: Date.now() + CACHE_TTL_MS });
       return data;
     })
-    .finally(() => inFlightRequests.delete(domain));
+    .finally(() => inFlightRequests.delete(cacheKey));
 
-  inFlightRequests.set(domain, request);
+  inFlightRequests.set(cacheKey, request);
   return request;
 }
 

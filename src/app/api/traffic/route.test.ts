@@ -27,9 +27,22 @@ describe("GET /api/traffic", () => {
     });
   });
 
+  it("trả lỗi cấu hình khi số tháng nằm ngoài phạm vi TabAPI hỗ trợ", async () => {
+    vi.stubEnv("TABAPI_KEY", "sk_test");
+    vi.stubEnv("TRAFFIC_MONTHS", "2");
+
+    const response = await GET(new NextRequest("http://localhost/api/traffic?domain=vercel.com"));
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "invalid_configuration", message: expect.stringContaining("3–12") },
+    });
+  });
+
   it("chuẩn hóa URL và trả dữ liệu mà không để lộ key", async () => {
     const secret = "sk_route_secret";
     vi.stubEnv("TABAPI_KEY", secret);
+    vi.stubEnv("TRAFFIC_MONTHS", "6");
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify(trafficFixture), { status: 200, headers: { "Content-Type": "application/json" } }),
     );
@@ -43,6 +56,6 @@ describe("GET /api/traffic", () => {
     expect(response.status).toBe(200);
     expect(JSON.parse(body).domain).toBe("vercel.com");
     expect(body).not.toContain(secret);
-    expect(fetchMock.mock.calls[0][0]).toContain("/domains/vercel.com/traffic?months=3");
+    expect(fetchMock.mock.calls[0][0]).toContain("/domains/vercel.com/traffic?months=6");
   });
 });

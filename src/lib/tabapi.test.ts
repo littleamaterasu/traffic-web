@@ -16,12 +16,12 @@ describe("TabAPI client", () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(trafficFixture));
     const secret = "sk_test_secret";
 
-    const result = await fetchTrafficFromTabApi("vercel.com", secret, fetchMock as unknown as typeof fetch);
+    const result = await fetchTrafficFromTabApi("vercel.com", secret, 6, fetchMock as unknown as typeof fetch);
 
     expect(result.domain).toBe("vercel.com");
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, options] = fetchMock.mock.calls[0];
-    expect(url).toBe("https://tabapi.com/api/v1/domains/vercel.com/traffic?months=3");
+    expect(url).toBe("https://tabapi.com/api/v1/domains/vercel.com/traffic?months=6");
     expect(url).not.toContain(secret);
     expect(options.headers.Authorization).toBe(`Bearer ${secret}`);
   });
@@ -29,10 +29,21 @@ describe("TabAPI client", () => {
   it("cache kết quả thành công theo domain", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(trafficFixture));
 
-    await getTraffic("vercel.com", "sk_test", fetchMock as unknown as typeof fetch);
-    await getTraffic("vercel.com", "sk_test", fetchMock as unknown as typeof fetch);
+    await getTraffic("vercel.com", "sk_test", 3, fetchMock as unknown as typeof fetch);
+    await getTraffic("vercel.com", "sk_test", 3, fetchMock as unknown as typeof fetch);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("tách cache theo số tháng lịch sử", async () => {
+    const fetchMock = vi.fn().mockImplementation(async () => jsonResponse(trafficFixture));
+
+    await getTraffic("vercel.com", "sk_test", 3, fetchMock as unknown as typeof fetch);
+    await getTraffic("vercel.com", "sk_test", 6, fetchMock as unknown as typeof fetch);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0][0]).toContain("months=3");
+    expect(fetchMock.mock.calls[1][0]).toContain("months=6");
   });
 
   it("không cache lỗi", async () => {
@@ -42,11 +53,11 @@ describe("TabAPI client", () => {
         jsonResponse({ error: { code: "insufficient_credits", message: "No credits" } }, 402),
       );
 
-    await expect(getTraffic("vercel.com", "sk_test", fetchMock as unknown as typeof fetch)).rejects.toMatchObject({
+    await expect(getTraffic("vercel.com", "sk_test", 3, fetchMock as unknown as typeof fetch)).rejects.toMatchObject({
       status: 402,
       message: "Tài khoản TabAPI không đủ credits.",
     });
-    await expect(getTraffic("vercel.com", "sk_test", fetchMock as unknown as typeof fetch)).rejects.toBeInstanceOf(
+    await expect(getTraffic("vercel.com", "sk_test", 3, fetchMock as unknown as typeof fetch)).rejects.toBeInstanceOf(
       TrafficApiError,
     );
 
@@ -61,7 +72,7 @@ describe("TabAPI client", () => {
   ])("ánh xạ lỗi %s", async (status, code, message) => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ error: { code, message: "Upstream message" } }, status));
 
-    await expect(fetchTrafficFromTabApi("vercel.com", "sk_test", fetchMock as unknown as typeof fetch)).rejects.toMatchObject({
+    await expect(fetchTrafficFromTabApi("vercel.com", "sk_test", 3, fetchMock as unknown as typeof fetch)).rejects.toMatchObject({
       status,
       code,
       message,

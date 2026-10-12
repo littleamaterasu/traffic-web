@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getTrafficMonths } from "@/lib/config";
 import { DomainValidationError, normalizeDomain } from "@/lib/domain";
 import { getTraffic, TrafficApiError } from "@/lib/tabapi";
 import type { ApiErrorBody } from "@/types/traffic";
@@ -24,8 +25,16 @@ export async function GET(request: NextRequest) {
     return errorResponse(500, "missing_api_key", "Chưa cấu hình TABAPI_KEY trên máy chủ.");
   }
 
+  let months: number;
   try {
-    const data = await getTraffic(domain, apiKey);
+    months = getTrafficMonths();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Cấu hình TRAFFIC_MONTHS không hợp lệ.";
+    return errorResponse(500, "invalid_configuration", message);
+  }
+
+  try {
+    const data = await getTraffic(domain, apiKey, months);
     return NextResponse.json(data, {
       headers: {
         "Cache-Control": "private, max-age=0, must-revalidate",

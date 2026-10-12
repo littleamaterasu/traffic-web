@@ -415,7 +415,7 @@ function Results({ data }: { data: TrafficResponse }) {
   );
 }
 
-export function TrafficDashboard() {
+export function TrafficDashboard({ trafficMonths = 3 }: { trafficMonths?: number }) {
   const [domain, setDomain] = useState("");
   const [data, setData] = useState<TrafficResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -474,7 +474,7 @@ export function TrafficDashboard() {
         <header className="mb-8 flex flex-col gap-5 border-b-[5px] border-[#171710] pb-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="mb-4 inline-flex rotate-[-2deg] border-[3px] border-[#171710] bg-[#ff7139] px-3 py-2 font-mono text-xs font-black uppercase shadow-[4px_4px_0_#171710]">
-              Website intelligence / 3 tháng
+              Website intelligence / {trafficMonths} tháng
             </div>
             <h1 className="max-w-4xl text-5xl font-black uppercase leading-[0.86] tracking-[-0.075em] sm:text-7xl lg:text-8xl">
               Traffic<br />Check<span className="text-[#ff7139]">!</span>

@@ -19,6 +19,13 @@ describe("TrafficDashboard", () => {
     await user.click(screen.getByRole("button", { name: /phân tích ngay/i }));
 
     expect(await screen.findByText("Agentic Infrastructure - Vercel")).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/traffic?domain=vercel.com",
+      expect.objectContaining({
+        headers: { "ngrok-skip-browser-warning": "true" },
+        signal: expect.any(AbortSignal),
+      }),
+    );
     expect(screen.getByText("Lượt truy cập theo tháng")).toBeInTheDocument();
     expect(screen.getByText("Nguồn traffic")).toBeInTheDocument();
     expect(screen.getByText("United States")).toBeInTheDocument();

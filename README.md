@@ -29,6 +29,14 @@ npm run dev
 
 Mở [http://localhost:3000](http://localhost:3000), nhập domain hoặc URL rồi chọn **Phân tích ngay**. Mỗi domain thành công được cache trong bộ nhớ tiến trình 24 giờ để hạn chế tiêu credits. Khởi động lại server sẽ xóa cache.
 
+Để mở từ điện thoại cùng mạng Wi-Fi, chạy:
+
+```bash
+npm run dev:lan
+```
+
+Sau đó truy cập `http://<IPv4-của-máy>:3000` trên điện thoại. Cấu hình development cũng cho phép tunnel `*.ngrok-free.app`.
+
 ## Kiểm tra chất lượng
 
 ```bash

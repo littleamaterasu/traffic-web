@@ -289,8 +289,16 @@ export function TrafficDashboard() {
     setLoading(true);
     setError(null);
 
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 20_000);
+
     try {
-      const response = await fetch(`/api/traffic?domain=${encodeURIComponent(query)}`);
+      const response = await fetch(`/api/traffic?domain=${encodeURIComponent(query)}`, {
+        headers: {
+          "ngrok-skip-browser-warning": "true",
+        },
+        signal: controller.signal,
+      });
       const body = (await response.json()) as TrafficResponse | ApiErrorBody;
 
       if (!response.ok) {
@@ -300,8 +308,15 @@ export function TrafficDashboard() {
       setData(body as TrafficResponse);
     } catch (cause) {
       setData(null);
-      setError(cause instanceof Error ? cause.message : "Không thể lấy dữ liệu website.");
+      setError(
+        cause instanceof DOMException && cause.name === "AbortError"
+          ? "Yêu cầu mất quá nhiều thời gian. Hãy kiểm tra kết nối và thử lại."
+          : cause instanceof Error
+            ? cause.message
+            : "Không thể lấy dữ liệu website.",
+      );
     } finally {
+      window.clearTimeout(timeout);
       setLoading(false);
     }
   }

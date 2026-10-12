@@ -1,0 +1,40 @@
+import { NextRequest, NextResponse } from "next/server";
+import { DomainValidationError, normalizeDomain } from "@/lib/domain";
+import { getTraffic, TrafficApiError } from "@/lib/tabapi";
+import type { ApiErrorBody } from "@/types/traffic";
+
+export const runtime = "nodejs";
+
+function errorResponse(status: number, code: string, message: string) {
+  return NextResponse.json<ApiErrorBody>({ error: { code, message } }, { status });
+}
+
+export async function GET(request: NextRequest) {
+  let domain: string;
+
+  try {
+    domain = normalizeDomain(request.nextUrl.searchParams.get("domain"));
+  } catch (error) {
+    const message = error instanceof DomainValidationError ? error.message : "Tên miền không hợp lệ.";
+    return errorResponse(400, "invalid_domain", message);
+  }
+
+  const apiKey = process.env.TABAPI_KEY;
+  if (!apiKey) {
+    return errorResponse(500, "missing_api_key", "Chưa cấu hình TABAPI_KEY trên máy chủ.");
+  }
+
+  try {
+    const data = await getTraffic(domain, apiKey);
+    return NextResponse.json(data, {
+      headers: {
+        "Cache-Control": "private, max-age=0, must-revalidate",
+      },
+    });
+  } catch (error) {
+    if (error instanceof TrafficApiError) {
+      return errorResponse(error.status, error.code, error.message);
+    }
+    return errorResponse(502, "unexpected_error", "Không thể lấy dữ liệu website lúc này.");
+  }
+}

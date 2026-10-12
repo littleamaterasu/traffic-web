@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCompactNumber, formatCurrency, formatDuration, formatMonth, formatNumber, formatPercent } from "./format";
+import { formatCompactCurrency, formatCompactNumber, formatCurrency, formatDuration, formatMonth, formatNumber, formatPercent } from "./format";
 
 describe("format helpers", () => {
   it("định dạng số và giá trị rỗng", () => {
@@ -11,7 +11,8 @@ describe("format helpers", () => {
   it("định dạng phần trăm, tiền và thời lượng", () => {
     expect(formatPercent(0.3183)).toBe("31.8%");
     expect(formatCurrency(1.1)).toBe("$1.10");
-    expect(formatDuration(428.87)).toBe("7m 09s");
+    expect(formatCompactCurrency(2800450)).toMatch(/2[,.]8.*USD/);
+    expect(formatDuration(428.87)).toBe("7 phút 09 giây");
   });
 
   it("định dạng tháng hợp lệ", () => {

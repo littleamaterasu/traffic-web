@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import {
+  formatCompactCurrency,
   formatCompactNumber,
   formatCurrency,
   formatDuration,
@@ -42,10 +43,10 @@ function Panel({
 }) {
   return (
     <section className={`border-[3px] border-[#171710] bg-[#fffdf4] shadow-[7px_7px_0_#171710] ${className}`}>
-      <div className="flex items-center justify-between gap-3 border-b-[3px] border-[#171710] bg-[#ffdb1f] px-4 py-3 sm:px-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b-[3px] border-[#171710] bg-[#ffdb1f] px-4 py-3 sm:px-5">
         <h2 className="text-lg font-black uppercase tracking-[-0.03em] sm:text-xl">{title}</h2>
         {badge ? (
-          <span className="border-2 border-[#171710] bg-[#fff8dc] px-2 py-1 text-xs font-black uppercase">{badge}</span>
+          <span className="max-w-full border-2 border-[#171710] bg-[#fff8dc] px-2 py-1 text-right text-xs font-black uppercase">{badge}</span>
         ) : null}
       </div>
       {children}
@@ -103,32 +104,41 @@ function Results({ data }: { data: TrafficResponse }) {
       ) : null}
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
-        <MetricCard label="Visits / tháng" value={formatCompactNumber(data.overview.visits)} accent="bg-[#ffdb1f]" />
-        <MetricCard label="Global rank" value={data.overview.global_rank == null ? "—" : `#${formatNumber(data.overview.global_rank)}`} accent="bg-[#fffdf4]" />
         <MetricCard
-          label={`${data.overview.country_rank?.country ?? "Quốc gia"} rank`}
+          label="Lượt truy cập / tháng"
+          value={data.overview.visits == null ? "—" : `${formatCompactNumber(data.overview.visits)} lượt`}
+          accent="bg-[#ffdb1f]"
+        />
+        <MetricCard label="Xếp hạng toàn cầu (vị trí)" value={data.overview.global_rank == null ? "—" : `#${formatNumber(data.overview.global_rank)}`} accent="bg-[#fffdf4]" />
+        <MetricCard
+          label={`Xếp hạng ${data.overview.country_rank?.country ?? "quốc gia"} (vị trí)`}
           value={data.overview.country_rank ? `#${formatNumber(data.overview.country_rank.rank)}` : "—"}
           accent="bg-[#b8f5cf]"
         />
-        <MetricCard label="Bounce rate" value={formatPercent(data.overview.bounce_rate)} accent="bg-[#ffb3c7]" />
+        <MetricCard label="Tỷ lệ thoát (% phiên)" value={formatPercent(data.overview.bounce_rate)} accent="bg-[#ffb3c7]" />
         <MetricCard
-          label="Pages / visit"
-          value={data.overview.pages_per_visit == null ? "—" : data.overview.pages_per_visit.toFixed(2)}
+          label="Số trang / phiên"
+          value={data.overview.pages_per_visit == null ? "—" : `${data.overview.pages_per_visit.toFixed(2)} trang`}
           accent="bg-[#c8c5ff]"
         />
-        <MetricCard label="Avg. visit" value={formatDuration(data.overview.time_on_site_seconds)} accent="bg-[#ffb26b]" />
+        <MetricCard label="Thời gian trung bình / phiên" value={formatDuration(data.overview.time_on_site_seconds)} accent="bg-[#ffb26b]" />
       </div>
 
+      <aside className="border-[3px] border-[#171710] bg-[#fffdf4] px-4 py-3 text-xs font-bold leading-relaxed shadow-[4px_4px_0_#171710] sm:text-sm">
+        <span className="font-black uppercase">Cách đọc đơn vị:</span>{" "}
+        <span><strong>lượt/tháng</strong> là visits ước tính trong tháng; <strong>trang/phiên</strong> là số trang trung bình mỗi lần truy cập; <strong>CPC</strong> là chi phí ước tính cho một click; <strong>điểm %</strong> là chênh lệch giữa hai tỷ lệ phần trăm.</span>
+      </aside>
+
       <div className="grid gap-8 xl:grid-cols-2">
-        <Panel title="Lượt truy cập theo tháng" badge="3 tháng">
+        <Panel title="Lượt truy cập theo tháng" badge="Đơn vị: lượt/tháng">
           {data.monthly_visits.length ? (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[460px] border-collapse text-left">
                 <thead>
                   <tr className="border-b-2 border-[#171710] bg-[#f0ebd5] text-xs uppercase tracking-wider">
                     <th className="px-5 py-3">Tháng</th>
-                    <th className="px-5 py-3 text-right">Lượt truy cập</th>
-                    <th className="px-5 py-3 text-right">Thay đổi</th>
+                    <th className="px-5 py-3 text-right">Lượt truy cập (lượt/tháng)</th>
+                    <th className="px-5 py-3 text-right">So tháng trước (%)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -153,7 +163,7 @@ function Results({ data }: { data: TrafficResponse }) {
           )}
         </Panel>
 
-        <Panel title="Nguồn traffic" badge={`${sources.length}/13 kênh`}>
+        <Panel title="Nguồn traffic" badge={`Tỷ trọng lượt truy cập (%) · ${sources.length}/13 kênh`}>
           {sources.length ? (
             <div className="divide-y-2 divide-[#171710]">
               {sources.map((source) => (
@@ -173,14 +183,14 @@ function Results({ data }: { data: TrafficResponse }) {
       </div>
 
       <div className="grid gap-8 xl:grid-cols-[0.85fr_1.15fr]">
-        <Panel title="Quốc gia hàng đầu">
+        <Panel title="Quốc gia hàng đầu" badge="Tỷ trọng lượt truy cập (%)">
           {data.top_regions.length ? (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[380px] border-collapse text-left">
                 <thead>
                   <tr className="border-b-2 border-[#171710] bg-[#f0ebd5] text-xs uppercase tracking-wider">
                     <th className="px-5 py-3">Quốc gia</th>
-                    <th className="px-5 py-3 text-right">Tỷ trọng</th>
+                    <th className="px-5 py-3 text-right">Tỷ trọng lượt truy cập (%)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -208,9 +218,9 @@ function Results({ data }: { data: TrafficResponse }) {
                 <thead>
                   <tr className="border-b-2 border-[#171710] bg-[#f0ebd5] text-xs uppercase tracking-wider">
                     <th className="px-5 py-3">Từ khóa</th>
-                    <th className="px-5 py-3 text-right">Volume</th>
-                    <th className="px-5 py-3 text-right">CPC</th>
-                    <th className="px-5 py-3 text-right">Giá trị</th>
+                    <th className="px-5 py-3 text-right">Lượt tìm kiếm/tháng</th>
+                    <th className="px-5 py-3 text-right">CPC (USD/click)</th>
+                    <th className="px-5 py-3 text-right">Giá trị traffic (USD/tháng)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -219,7 +229,7 @@ function Results({ data }: { data: TrafficResponse }) {
                       <td className="px-5 py-4 font-black">{keyword.name}</td>
                       <td className="px-5 py-4 text-right font-mono font-bold">{formatCompactNumber(keyword.volume)}</td>
                       <td className="px-5 py-4 text-right font-mono font-bold">{formatCurrency(keyword.cpc)}</td>
-                      <td className="px-5 py-4 text-right font-mono font-bold">{formatCompactNumber(keyword.estimated_value)}</td>
+                      <td className="px-5 py-4 text-right font-mono font-bold">{formatCompactCurrency(keyword.estimated_value)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -231,16 +241,16 @@ function Results({ data }: { data: TrafficResponse }) {
         </Panel>
       </div>
 
-      <Panel title="AI assistant referrals" badge="Tỷ trọng trong AI traffic">
+      <Panel title="AI assistant referrals" badge="Tỷ trọng trong AI traffic (%)">
         {aiTrends.length ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[620px] border-collapse text-left">
               <thead>
                 <tr className="border-b-2 border-[#171710] bg-[#f0ebd5] text-xs uppercase tracking-wider">
                   <th className="px-5 py-3">Assistant</th>
-                  <th className="px-5 py-3 text-right">Mới nhất</th>
-                  <th className="px-5 py-3 text-right">Thay đổi</th>
-                  <th className="px-5 py-3">Lịch sử</th>
+                  <th className="px-5 py-3 text-right">Mới nhất (%)</th>
+                  <th className="px-5 py-3 text-right">Thay đổi (điểm %)</th>
+                  <th className="px-5 py-3">Lịch sử tỷ trọng (%)</th>
                 </tr>
               </thead>
               <tbody>

@@ -32,7 +32,9 @@ describe("TrafficDashboard", () => {
     expect(screen.getAllByText("vercel").length).toBeGreaterThan(0);
     expect(screen.getByText("chatgpt.com")).toBeInTheDocument();
     expect(screen.getByText("31.8%")).toBeInTheDocument();
-    expect(screen.getByText("7m 09s")).toBeInTheDocument();
+    expect(screen.getByText("7 phút 09 giây")).toBeInTheDocument();
+    expect(screen.getByText("CPC (USD/click)")).toBeInTheDocument();
+    expect(screen.getByText("Giá trị traffic (USD/tháng)")).toBeInTheDocument();
   });
 
   it("hiển thị lỗi từ API", async () => {

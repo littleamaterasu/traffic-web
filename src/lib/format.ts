@@ -8,6 +8,10 @@ const usdFormatter = new Intl.NumberFormat("en-US", {
   currency: "USD",
   maximumFractionDigits: 2,
 });
+const compactUsdFormatter = new Intl.NumberFormat("vi-VN", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
 
 export function formatNumber(value: number | null | undefined): string {
   return value == null ? "—" : numberFormatter.format(value);
@@ -26,11 +30,15 @@ export function formatDuration(value: number | null | undefined): string {
   const totalSeconds = Math.max(0, Math.round(value));
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
-  return `${minutes}m ${seconds.toString().padStart(2, "0")}s`;
+  return `${minutes} phút ${seconds.toString().padStart(2, "0")} giây`;
 }
 
 export function formatCurrency(value: number | null | undefined): string {
   return value == null ? "—" : usdFormatter.format(value);
+}
+
+export function formatCompactCurrency(value: number | null | undefined): string {
+  return value == null ? "—" : `${compactUsdFormatter.format(value)} USD`;
 }
 
 export function formatMonth(value: string | null | undefined): string {

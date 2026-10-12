@@ -40,6 +40,39 @@ describe("TrafficDashboard", () => {
     expect(container.querySelectorAll("td[data-label]").length).toBeGreaterThan(0);
   });
 
+  it("mở phần giải thích ý nghĩa và thông số của từng bảng", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: async () => trafficFixture }),
+    );
+
+    render(<TrafficDashboard />);
+    await user.click(screen.getByRole("button", { name: "vercel.com" }));
+
+    const monthlyInfoButton = await screen.findByRole("button", {
+      name: "Giải thích bảng Lượt truy cập theo tháng",
+    });
+    expect(monthlyInfoButton).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(monthlyInfoButton);
+    expect(monthlyInfoButton).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("dialog")).toHaveClass("max-h-[calc(100dvh-2rem)]", "overflow-y-auto");
+    expect(screen.getByText(/một người có thể tạo nhiều lượt truy cập/i)).toBeInTheDocument();
+    expect(screen.getByText(/chưa có tháng trước để so sánh/i)).toBeInTheDocument();
+
+    await user.click(
+      screen.getAllByRole("button", { name: "Đóng giải thích bảng Lượt truy cập theo tháng" })[1],
+    );
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Giải thích bảng Từ khóa hàng đầu" }),
+    );
+    expect(screen.getByText(/không phải lượt click vào website/i)).toBeInTheDocument();
+    expect(screen.getByText(/chi phí quảng cáo ước tính cho một lượt click/i)).toBeInTheDocument();
+  });
+
   it("hiển thị lỗi từ API", async () => {
     const user = userEvent.setup();
     vi.stubGlobal(

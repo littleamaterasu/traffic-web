@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useId, useState } from "react";
 import {
   formatCompactCurrency,
   formatCompactNumber,
@@ -30,14 +30,143 @@ const SOURCE_LABELS: Array<[keyof TrafficSources, string]> = [
   ["other", "Khác"],
 ];
 
+type PanelInfo = {
+  summary: string;
+  metrics: Array<{ label: string; meaning: string }>;
+  note?: string;
+};
+
+const PANEL_INFO = {
+  monthlyVisits: {
+    summary: "Cho biết quy mô traffic ước tính của website theo từng tháng và xu hướng tăng hoặc giảm so với tháng liền trước.",
+    metrics: [
+      { label: "Tháng", meaning: "Kỳ dữ liệu được dùng để tổng hợp traffic." },
+      { label: "Lượt truy cập", meaning: "Tổng số phiên truy cập ước tính trong tháng; một người có thể tạo nhiều lượt truy cập." },
+      { label: "So tháng trước", meaning: "Tỷ lệ tăng hoặc giảm của lượt truy cập so với tháng ngay trước đó." },
+    ],
+    note: "Dấu “—” nghĩa là chưa có tháng trước để so sánh hoặc nguồn dữ liệu chưa đủ.",
+  },
+  trafficSources: {
+    summary: "Thể hiện website nhận traffic từ đâu và tỷ trọng của từng kênh trong tổng lượt truy cập ước tính.",
+    metrics: [
+      { label: "Trực tiếp", meaning: "Người dùng nhập URL, dùng bookmark hoặc nguồn truy cập không xác định được." },
+      { label: "Tìm kiếm", meaning: "Traffic từ công cụ tìm kiếm, gồm tự nhiên và trả phí." },
+      { label: "Mạng xã hội", meaning: "Traffic từ các nền tảng social, gồm tự nhiên và trả phí." },
+      { label: "Giới thiệu", meaning: "Traffic qua liên kết trên website khác; paid referrals là lượt giới thiệu có trả phí." },
+      { label: "Email / AI / Affiliate / Khác", meaning: "Traffic từ email, công cụ AI tạo sinh, đối tác tiếp thị liên kết hoặc các nguồn còn lại." },
+      { label: "Tỷ trọng (%)", meaning: "Phần trăm lượt truy cập mà kênh đó đóng góp trong tổng traffic." },
+    ],
+    note: "Các nhóm tổng và nhóm con có thể cùng xuất hiện, vì vậy không nên cộng tất cả dòng để suy ra 100%.",
+  },
+  topRegions: {
+    summary: "Cho biết những quốc gia mang lại nhiều lượt truy cập nhất cho website.",
+    metrics: [
+      { label: "Quốc gia", meaning: "Mã quốc gia và tên thị trường nơi người truy cập được ghi nhận." },
+      { label: "Tỷ trọng lượt truy cập", meaning: "Phần trăm tổng traffic ước tính đến từ quốc gia đó." },
+    ],
+    note: "Đây là phân bổ theo vị trí địa lý ước tính, không phải số người dùng duy nhất.",
+  },
+  topKeywords: {
+    summary: "Liệt kê các từ khóa tìm kiếm nổi bật có khả năng đưa người dùng đến website và giá trị quảng cáo ước tính của chúng.",
+    metrics: [
+      { label: "Từ khóa", meaning: "Cụm từ người dùng nhập trên công cụ tìm kiếm." },
+      { label: "Lượt tìm kiếm/tháng", meaning: "Số lần từ khóa được tìm kiếm trung bình trong một tháng, không phải lượt click vào website." },
+      { label: "CPC", meaning: "Chi phí quảng cáo ước tính cho một lượt click vào từ khóa, tính bằng USD." },
+      { label: "Giá trị traffic", meaning: "Chi phí quảng cáo ước tính cần bỏ ra mỗi tháng để mua lượng traffic tự nhiên tương đương." },
+    ],
+    note: "Volume, CPC và giá trị traffic đều là số liệu ước tính theo thị trường và thời điểm thu thập.",
+  },
+  aiReferrals: {
+    summary: "Theo dõi tỷ trọng traffic do từng trợ lý AI giới thiệu đến website và sự thay đổi qua các kỳ.",
+    metrics: [
+      { label: "Assistant", meaning: "Tên nền tảng hoặc trợ lý AI gửi người dùng đến website." },
+      { label: "Mới nhất", meaning: "Tỷ trọng của assistant trong tổng AI traffic ở kỳ gần nhất." },
+      { label: "Thay đổi", meaning: "Chênh lệch giữa hai kỳ gần nhất, tính bằng điểm phần trăm; không phải phần trăm tăng trưởng." },
+      { label: "Lịch sử tỷ trọng", meaning: "Chuỗi tỷ trọng theo tháng để quan sát xu hướng của từng assistant." },
+    ],
+    note: "Ví dụ từ 20% lên 25% là tăng 5 điểm phần trăm, tương đương mức tăng tương đối 25%.",
+  },
+} satisfies Record<string, PanelInfo>;
+
+function InfoButton({ title, info }: { title: string; info: PanelInfo }) {
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  const titleId = `${id}-title`;
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        aria-label={`Giải thích bảng ${title}`}
+        aria-expanded={open}
+        aria-controls={id}
+        onClick={() => setOpen((value) => !value)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") setOpen(false);
+        }}
+        className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#171710] bg-[#fff8dc] font-serif text-base font-black lowercase leading-none shadow-[2px_2px_0_#171710] transition-transform hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+      >
+        i
+      </button>
+      {open ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+          <button
+            type="button"
+            aria-label={`Đóng giải thích bảng ${title}`}
+            onClick={() => setOpen(false)}
+            className="absolute inset-0 h-full w-full cursor-default bg-[#171710]/55"
+          />
+          <div
+            id={id}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+            className="relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto border-[3px] border-[#171710] bg-[#fffdf4] p-4 text-left normal-case tracking-normal shadow-[7px_7px_0_#ff7139] sm:max-h-[calc(100dvh-3rem)] sm:p-5"
+          >
+            <div className="flex items-start justify-between gap-4 border-b-2 border-[#171710] pb-3">
+              <h3 id={titleId} className="text-base font-black uppercase leading-tight sm:text-lg">
+                Giải thích: {title}
+              </h3>
+              <button
+                type="button"
+                aria-label={`Đóng giải thích bảng ${title}`}
+                onClick={() => setOpen(false)}
+                className="flex h-8 w-8 shrink-0 items-center justify-center border-2 border-[#171710] bg-[#ffb3c7] text-lg font-black leading-none shadow-[2px_2px_0_#171710] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+              >
+                ×
+              </button>
+            </div>
+            <p className="mt-3 text-sm font-bold leading-relaxed">{info.summary}</p>
+            <dl className="mt-3 space-y-2 border-t-2 border-[#171710] pt-3">
+              {info.metrics.map((metric) => (
+                <div key={metric.label} className="text-xs leading-relaxed sm:text-sm">
+                  <dt className="inline font-black">{metric.label}: </dt>
+                  <dd className="inline font-semibold">{metric.meaning}</dd>
+                </div>
+              ))}
+            </dl>
+            {info.note ? (
+              <p className="mt-3 border-l-4 border-[#ff7139] pl-3 text-xs font-bold leading-relaxed">
+                Lưu ý: {info.note}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function Panel({
   title,
   badge,
+  info,
   children,
   className = "",
 }: {
   title: string;
   badge?: string;
+  info?: PanelInfo;
   children: React.ReactNode;
   className?: string;
 }) {
@@ -45,9 +174,12 @@ function Panel({
     <section className={`border-[3px] border-[#171710] bg-[#fffdf4] shadow-[7px_7px_0_#171710] ${className}`}>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b-[3px] border-[#171710] bg-[#ffdb1f] px-4 py-3 sm:px-5">
         <h2 className="text-lg font-black uppercase tracking-[-0.03em] sm:text-xl">{title}</h2>
-        {badge ? (
-          <span className="max-w-full border-2 border-[#171710] bg-[#fff8dc] px-2 py-1 text-right text-xs font-black uppercase">{badge}</span>
-        ) : null}
+        <div className="flex max-w-full items-center gap-2">
+          {badge ? (
+            <span className="max-w-full border-2 border-[#171710] bg-[#fff8dc] px-2 py-1 text-right text-xs font-black uppercase">{badge}</span>
+          ) : null}
+          {info ? <InfoButton title={title} info={info} /> : null}
+        </div>
       </div>
       {children}
     </section>
@@ -130,7 +262,7 @@ function Results({ data }: { data: TrafficResponse }) {
       </aside>
 
       <div className="grid gap-8 xl:grid-cols-2">
-        <Panel title="Lượt truy cập theo tháng" badge="Đơn vị: lượt/tháng">
+        <Panel title="Lượt truy cập theo tháng" badge="Đơn vị: lượt/tháng" info={PANEL_INFO.monthlyVisits}>
           {data.monthly_visits.length ? (
             <div className="responsive-table-wrap">
               <table className="responsive-table text-left">
@@ -163,7 +295,7 @@ function Results({ data }: { data: TrafficResponse }) {
           )}
         </Panel>
 
-        <Panel title="Nguồn traffic" badge={`Tỷ trọng lượt truy cập (%) · ${sources.length}/13 kênh`}>
+        <Panel title="Nguồn traffic" badge={`Tỷ trọng lượt truy cập (%) · ${sources.length}/13 kênh`} info={PANEL_INFO.trafficSources}>
           {sources.length ? (
             <div className="divide-y-2 divide-[#171710]">
               {sources.map((source) => (
@@ -183,7 +315,7 @@ function Results({ data }: { data: TrafficResponse }) {
       </div>
 
       <div className="grid gap-8 xl:grid-cols-[0.85fr_1.15fr]">
-        <Panel title="Quốc gia hàng đầu" badge="Tỷ trọng lượt truy cập (%)">
+        <Panel title="Quốc gia hàng đầu" badge="Tỷ trọng lượt truy cập (%)" info={PANEL_INFO.topRegions}>
           {data.top_regions.length ? (
             <div className="responsive-table-wrap">
               <table className="responsive-table text-left">
@@ -211,7 +343,7 @@ function Results({ data }: { data: TrafficResponse }) {
           )}
         </Panel>
 
-        <Panel title="Từ khóa hàng đầu">
+        <Panel title="Từ khóa hàng đầu" info={PANEL_INFO.topKeywords}>
           {data.top_keywords.length ? (
             <div className="responsive-table-wrap">
               <table className="responsive-table text-left">
@@ -241,7 +373,7 @@ function Results({ data }: { data: TrafficResponse }) {
         </Panel>
       </div>
 
-      <Panel title="AI assistant referrals" badge="Tỷ trọng trong AI traffic (%)">
+      <Panel title="AI assistant referrals" badge="Tỷ trọng trong AI traffic (%)" info={PANEL_INFO.aiReferrals}>
         {aiTrends.length ? (
           <div className="responsive-table-wrap">
             <table className="responsive-table text-left">

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { AdsPanel } from "@/components/ads-panel";
 import { EmptyCell, MetricCard, Panel } from "@/components/panel";
 import type { PanelInfo } from "@/components/panel";
 import {
@@ -296,6 +297,8 @@ function Results({ data }: { data: TrafficResponse }) {
           <EmptyCell>Chưa có dữ liệu referral từ AI assistants.</EmptyCell>
         )}
       </Panel>
+
+      <AdsPanel key={data.domain} domain={data.domain} />
     </div>
   );
 }

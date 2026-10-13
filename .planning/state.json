@@ -1,0 +1,33 @@
+{
+  "contract": "1.0.0",
+  "flavor": "core",
+  "milestone": null,
+  "phases": [
+    {
+      "number": "1",
+      "name": "Groundwork — Reusable Primitives & Cache Factory",
+      "status": "in_progress"
+    },
+    {
+      "number": "2",
+      "name": "Referring Sites (Backlinks Slice)",
+      "status": "pending"
+    },
+    {
+      "number": "3",
+      "name": "Related Advertisers & Ad Creatives (SERP Slice)",
+      "status": "pending"
+    },
+    {
+      "number": "4",
+      "name": "Consolidated Readable Report",
+      "status": "pending"
+    }
+  ],
+  "next": {
+    "command": "/gsd:progress --next",
+    "label": "Advance to the next step (verify)",
+    "reason": "Phase 1 of 4 · 0% · ready to verify"
+  },
+  "updated_at": "2026-10-13T14:53:13.767Z"
+}

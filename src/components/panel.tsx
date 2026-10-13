@@ -110,11 +110,22 @@ export function EmptyCell({ children = "Chưa có dữ liệu" }: { children?: R
   return <div className="p-6 text-center font-bold text-[#5e5b4d]">{children}</div>;
 }
 
-export function MetricCard({ label, value, accent }: { label: string; value: string; accent: string }) {
+export function MetricCard({
+  label,
+  value,
+  accent,
+  hint,
+}: {
+  label: string;
+  value: string;
+  accent: string;
+  hint?: string;
+}) {
   return (
     <div className={`border-[3px] border-[#171710] p-4 shadow-[5px_5px_0_#171710] ${accent}`}>
       <p className="mb-3 text-xs font-black uppercase tracking-[0.12em]">{label}</p>
       <p className="break-words text-2xl font-black tracking-[-0.05em] sm:text-3xl">{value}</p>
+      {hint ? <p className="mt-2 text-xs font-bold leading-snug">{hint}</p> : null}
     </div>
   );
 }

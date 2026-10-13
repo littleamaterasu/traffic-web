@@ -31,11 +31,11 @@ A brownfield extension of the working TabAPI-backed traffic dashboard. Four phas
   3. A developer can compose a new panel from the extracted `Panel`, `InfoButton`, `EmptyCell`, `MetricCard` primitives and the shared `PANEL_INFO` module without copying code out of the monolithic client file
    4. A store created via the generalized `createCachedStore<T>()` factory demonstrates the same guarantees as the existing traffic cache — 24h TTL, in-flight dedup, injectable `fetchImpl` — with `getTraffic` running on the factory and its tests green
 
-**Plans**: 1/2 plans executed
+**Plans**: 2/2 plans executed
 
 Plans:
 
-- [ ] 01-01-PLAN.md — Verbatim-extract Panel/InfoButton/EmptyCell/MetricCard + PanelInfo into src/components/panel.tsx with co-located tests (D-01, D-02, GRND-01)
+- [x] 01-01-PLAN.md — Verbatim-extract Panel/InfoButton/EmptyCell/MetricCard + PanelInfo into src/components/panel.tsx with co-located tests (D-01, D-02, GRND-01)
 - [x] 01-02-PLAN.md — Generalize the 24h cache into createCachedStore<T>() in src/lib/cached-store.ts and delegate getTraffic (D-03, D-04, GRND-02)
 
 ### Phase 2: Referring Sites (Backlinks Slice)
@@ -94,7 +94,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Groundwork — Reusable Primitives & Cache Factory | 1/2 | In Progress|  |
+| 1. Groundwork — Reusable Primitives & Cache Factory | 2/2 | In Progress|  |
 | 2. Referring Sites (Backlinks Slice) | 0/TBD | Not started | - |
 | 3. Related Advertisers & Ad Creatives (SERP Slice) | 0/TBD | Not started | - |
 | 4. Consolidated Readable Report | 0/TBD | Not started | - |

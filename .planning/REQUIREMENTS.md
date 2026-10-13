@@ -9,7 +9,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Groundwork
 
-- [ ] **GRND-01**: Researcher sees no behavior change after shared UI primitives (`Panel`, `InfoButton`, `EmptyCell`, `MetricCard`, `PANEL_INFO`) are extracted into a reusable module
+- [x] **GRND-01**: Researcher sees no behavior change after shared UI primitives (`Panel`, `InfoButton`, `EmptyCell`, `MetricCard`, `PANEL_INFO`) are extracted into a reusable module
 - [x] **GRND-02**: New data sections reuse a generalized cached-store factory that preserves 24h TTL, in-flight dedup, and injectable `fetchImpl` behavior of the existing traffic cache
 
 ### Referring Sites
@@ -77,7 +77,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| GRND-01 | Phase 1 | Pending |
+| GRND-01 | Phase 1 | Complete |
 | GRND-02 | Phase 1 | Complete |
 | REFS-01 | Phase 2 | Pending |
 | REFS-02 | Phase 2 | Pending |

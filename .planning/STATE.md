@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 1
 current_phase_name: Groundwork — Reusable Primitives & Cache Factory
 status: executing
-stopped_at: Phase 1 context gathered
-last_updated: "2026-10-13T10:59:13.114Z"
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-10-13T14:52:03.573Z"
 last_activity: 2026-10-13
-last_activity_desc: Roadmap created; 17/17 v1 requirements mapped to 4 phases
-state_head: d63439a69e0eb4c22b5aef367f23d4bd28048933
+last_activity_desc: Phase 1 execution started
+state_head: 9bd22b01a88fdec8d602fee050ef3ad89ddb607c
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 2
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -36,14 +36,14 @@ progress:[░░░░░░░░░░] 0%
 See: .planning/PROJECT.md (updated 2026-10-13)
 
 **Core value:** An invited marketing researcher enters a domain and receives one readable report explaining its estimated traffic, trend, acquisition channels, leading countries, referring sites, and related Google advertisers and creatives.
-**Current focus:** Phase 1 — Groundwork (Reusable Primitives & Cache Factory)
+**Current focus:** Phase 1 — Groundwork — Reusable Primitives & Cache Factory
 
 ## Current Position
 
-Phase: 1 (Groundwork — Reusable Primitives & Cache Factory) — READY TO EXECUTE
-Plan: 0 of TBD in current phase
+Phase: 1 (Groundwork — Reusable Primitives & Cache Factory) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-10-13 — Roadmap created; 17/17 v1 requirements mapped to 4 phases
+Last activity: 2026-10-13 — Phase 1 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -67,6 +67,11 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: —
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 1 P2 | 10min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -78,6 +83,9 @@ Recent decisions affecting current work:
 - [Milestone init]: Extend the existing Traffic Check app (brownfield); core `/api/traffic` route and `TrafficResponse` contract are frozen — new capabilities get sibling routes/contracts
 - [Milestone init]: v1 ships TabAPI-only (no SerpAPI/`SERPAPI_KEY`); creatives are a client-side view of the advertisers payload, merged into Phase 3 per coarse granularity
 - [Research]: Referring sites must be framed as link-based referring domains (Backlinks API), never visit-weighted referral traffic — labeling pinned in `PANEL_INFO` at Phase 2 planning
+- [Phase 1]: Cache factory: stateless createCachedStore<T>() with factory-default TTL/capacity constants; tabapi.ts calls it bare (single home for 24h TTL / 100-entry values)
+- [Phase 1]: Cache eviction stays FIFO-by-insertion (Map order), not LRU — zero-behavior-change phase; factory reproduces tabapi.ts get sequence step-for-step (prune-before-insert, strict expiresAt > now)
+- [Phase 1]: Injectable now clock seam replaces baked-in Date.now() for TTL testability without fake timers
 
 ### Pending Todos
 
@@ -98,6 +106,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-13T10:37:06.216Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-groundwork-reusable-primitives-cache-factory/01-CONTEXT.md
+Last session: 2026-10-13T14:52:03.519Z
+Stopped at: Completed 01-02-PLAN.md
+Resume file: None

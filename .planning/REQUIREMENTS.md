@@ -77,13 +77,29 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (pending roadmap creation) | — | Pending |
+| GRND-01 | Phase 1 | Pending |
+| GRND-02 | Phase 1 | Pending |
+| REFS-01 | Phase 2 | Pending |
+| REFS-02 | Phase 2 | Pending |
+| REFS-03 | Phase 2 | Pending |
+| REFS-04 | Phase 2 | Pending |
+| REFS-05 | Phase 2 | Pending |
+| ADVR-01 | Phase 3 | Pending |
+| ADVR-02 | Phase 3 | Pending |
+| ADVR-03 | Phase 3 | Pending |
+| ADVR-04 | Phase 3 | Pending |
+| CRTV-01 | Phase 3 | Pending |
+| CRTV-02 | Phase 3 | Pending |
+| RPT-01 | Phase 4 | Pending |
+| RPT-02 | Phase 4 | Pending |
+| RPT-03 | Phase 4 | Pending |
+| RPT-04 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 17 total
-- Mapped to phases: 0
-- Unmapped: 17 ⚠️
+- Mapped to phases: 17
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-10-13*
-*Last updated: 2026-10-13 after initial definition*
+*Last updated: 2026-10-13 after roadmap creation (traceability mapped to 4 phases)*

@@ -82,11 +82,11 @@ Source: domain-check checklist; analysis and decisions in `.planning/research/DO
 
 **SE Ranking (supplementary SEO / paid data)**
 
-- [ ] **SERK-01**: Researcher sees worldwide organic and paid keyword count, estimated traffic and traffic value from SE Ranking `domain/overview/worldwide`, labeled as SE Ranking estimates distinct from TabAPI
-- [ ] **SERK-02**: Researcher sees top paid keywords from `domain/keywords?type=adv` with CPC, volume, position, ad block, ad title/description/display URL and landing page
-- [ ] **SERK-03**: Researcher sees advertiser competitors from `domain/competitors?type=adv` with common-keyword counts and relevance
-- [ ] **SERK-04**: Researcher can load, on explicit click only (never automatically; ~100 credits), a backlinks summary from `backlinks/summary` (backlinks, referring domains, dofollow share, domain inlink rank, top anchors)
-- [ ] **SERK-05**: `SE_RANKING_API_KEY` is read server-side only; absent key, upstream error or empty data yields a Vietnamese state without failing the report; results are cached 24h with in-flight dedup via `createCachedStore`
+- [x] **SERK-01**: Researcher sees worldwide organic and paid keyword count, estimated traffic and traffic value from SE Ranking `domain/overview/worldwide`, labeled as SE Ranking estimates distinct from TabAPI
+- [x] **SERK-02**: Researcher sees top paid keywords from `domain/keywords?type=adv` with CPC, volume, position, ad block, ad title/description/display URL and landing page
+- [x] **SERK-03**: Researcher sees advertiser competitors from `domain/competitors?type=adv` with common-keyword counts and relevance
+- [x] **SERK-04**: Researcher can load, on explicit click only (never automatically; ~100 credits), a backlinks summary from `backlinks/summary` (backlinks, referring domains, dofollow share, domain inlink rank, top anchors)
+- [x] **SERK-05**: `SE_RANKING_API_KEY` is read server-side only; absent key, upstream error or empty data yields a Vietnamese state without failing the report; results are cached 24h with in-flight dedup via `createCachedStore`
 
 **Affiliate Terms (three-tier data)**
 
@@ -166,11 +166,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ECON-01 | Phase 7 | Pending |
 | ECON-02 | Phase 7 | Pending |
 | ECON-03 | Phase 7 | Pending |
-| SERK-01 | Phase 8 | Pending |
-| SERK-02 | Phase 8 | Pending |
-| SERK-03 | Phase 8 | Pending |
-| SERK-04 | Phase 8 | Pending |
-| SERK-05 | Phase 8 | Pending |
+| SERK-01 | Phase 8 | Complete |
+| SERK-02 | Phase 8 | Complete |
+| SERK-03 | Phase 8 | Complete |
+| SERK-04 | Phase 8 | Complete |
+| SERK-05 | Phase 8 | Complete |
 
 **Coverage:**
 

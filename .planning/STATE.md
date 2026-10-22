@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 08
 current_phase_name: SE Ranking Integration (Supplementary SEO / Paid Data)
 status: executing
-stopped_at: Completed 08-02-PLAN.md
-last_updated: "2026-10-22T05:06:54.285Z"
+stopped_at: Completed 08-03-PLAN.md
+last_updated: "2026-10-22T05:39:39.421Z"
 last_activity: 2026-10-22
 last_activity_desc: Phase 08 execution started
-state_head: 2c55a1c4f3190749f5af161f90401889424dbd52
+state_head: d88606b745c8b2e5a10c1d064a7c0dbf23866b09
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 6
-  completed_plans: 4
+  completed_plans: 5
   percent: 13
 ---
 
@@ -41,7 +41,7 @@ See: .planning/PROJECT.md (updated 2026-10-14)
 ## Current Position
 
 Phase: 08 (SE Ranking Integration (Supplementary SEO / Paid Data)) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-10-22 — Phase 08 execution started
 
@@ -75,6 +75,7 @@ Progress: [█░░░░░░░░░] 14%
 | Phase 1 P1 | 0.2 | 3 tasks | 3 files |
 | Phase 08 P01 | 13min | 1 tasks | 3 files |
 | Phase 08 P02 | 5min | 1 tasks | 4 files |
+| Phase 08 P03 | 22min | 1 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,8 @@ Recent decisions affecting current work:
 - [Phase 08]: Phase 08: /api/seranking returns a per-slice {data|error} envelope via Promise.allSettled (LIST_LIMIT=10, source default 'us' validated /^[a-z]{2}$/, uppercase rejected) and never imports the backlinks client — the 100-credit backlinks/summary call lives only behind /api/seranking/backlinks
 - [Phase 08]: Phase 08: backlinks upstream failure returns HTTP 200 with an error slice (mirrors the envelope contract); only invalid_domain (400) and missing_api_key (500) are HTTP errors, keeping the UI render path uniform
 - [Phase 08]: Phase 08: route validation order domain -> source -> key so bad input never surfaces as a key-configuration error nor triggers an upstream call; errorResponse/toErrorSlice duplicated (~10 lines) across the two routes per plan sanction instead of a shared helper outside the plan file list
+- [Phase 08]: Phase 08 plan 03: SerankingPanel fetch state keyed by requestedDomain and derived per render (domain change degrades view to loading/idle, stale responses unrenderable) - satisfies react-hooks/set-state-in-effect with zero effect-body setState
+- [Phase 08]: Phase 08 plan 03: ad cards render untrusted advertiser strings as React text nodes only, landing <a> href typed to a validated http/https landingUrl string with rel=noopener noreferrer (T-08-11); backlinks button hidden after success and reset on domain change so the 100-credit call fires only on explicit clicks (T-08-14b)
 
 ### Pending Todos
 
@@ -119,6 +122,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-22T05:05:03.817Z
-Stopped at: Completed 08-02-PLAN.md
+Last session: 2026-10-22T05:39:39.383Z
+Stopped at: Completed 08-03-PLAN.md
 Resume file: None

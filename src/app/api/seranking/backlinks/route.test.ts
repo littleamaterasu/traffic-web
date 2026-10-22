@@ -35,7 +35,7 @@ const expectedBacklinks: SeRankingBacklinks = {
   domain_inlink_rank: 78.9,
   inlink_rank: 61.2,
   top_anchors_by_backlinks: [{ anchor: "acme", backlinks: 999, refdomains: 45 }],
-  top_anchors_by_refdomains: [{ anchor: "đối tác", refdomains: 12 }],
+  top_anchors_by_refdomains: [{ anchor: "đối tác", backlinks: null, refdomains: 12 }],
 };
 
 function fetchRouter(routes: Record<string, unknown>) {

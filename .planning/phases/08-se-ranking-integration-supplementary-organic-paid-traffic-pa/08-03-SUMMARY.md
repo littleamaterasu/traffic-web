@@ -251,3 +251,13 @@ None - no external service configuration required by this plan. (`SE_RANKING_API
 ---
 *Phase: 08-se-ranking-integration-supplementary-organic-paid-traffic-pa*
 *Completed: 2026-10-22*
+
+## Self-Check: PASSED
+
+- All 4 key files exist on disk (3 source + SUMMARY)
+- Commits `9aac116` (RED), `076122b` (GREEN), `d88606b` (SUMMARY), `ba249ca` (state/roadmap metadata) present in git log
+- TDD gate: `test(08-03)` commit precedes GREEN `feat(08-03)` commit; `check tdd-red-evidence` → `RED_EVIDENCE_OK` (26 tests, 26 failed on assertions, target test failed on the mount-fetch assertion)
+- Component tests 26/26 pass; full suite 125/125 (13 files); `npx tsc --noEmit` 0; `npm run lint` 0
+- All 7 acceptance criteria verified post-GREEN: directory vitest run exit 0; `noopener noreferrer` present; 31 "SE Ranking" lines (≥4); 0 non-comment `process.env` references; `api/seranking?domain=` and `api/seranking/backlinks?domain=` + `Tải backlink` all match; `dangerouslySetInnerHTML` absent
+- Requirements SERK-01..05 intentionally left Pending in REQUIREMENTS.md — 08-04-PLAN.md also declares them and has no SUMMARY yet, so the #2388 shared-ID gate blocks `mark-complete` until the last declaring plan finishes
+- Working tree contains only pre-existing out-of-scope dirty files (`.env.example` → plan 08-04, one untracked notes .md); none staged

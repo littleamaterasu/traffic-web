@@ -31,7 +31,9 @@ traffic-web/
 │   │   └── page.tsx             # Home page (server component → TrafficDashboard)
 │   ├── components/              # Client components
 │   │   ├── traffic-dashboard.tsx    # Entire dashboard UI ("use client", 571 lines)
-│   │   └── traffic-dashboard.test.tsx
+│   │   ├── traffic-dashboard.test.tsx
+│   │   ├── seranking-panel.tsx      # SE Ranking section (4 slices, on-demand backlinks; not yet wired)
+│   │   └── seranking-panel.test.tsx
 │   ├── lib/                     # Pure logic modules (side-effect-free except tabapi)
 │   │   ├── config.ts            # TRAFFIC_MONTHS env parsing (default 3, range 3–12)
 │   │   ├── config.test.ts
@@ -42,7 +44,8 @@ traffic-web/
 │   │   ├── tabapi.ts            # TabAPI HTTP client + 24h in-memory cache + dedup
 │   │   └── tabapi.test.ts
 │   ├── test/
-│   │   └── fixture.ts           # Shared TrafficResponse fixture for tests
+│   │   ├── fixture.ts           # Shared TrafficResponse fixture for tests
+│   │   └── seranking-fixture.ts # Shared SeRankingResponse + SeRankingBacklinksResponse fixtures
 │   └── types/
 │       └── traffic.ts           # Shared API contracts (TrafficResponse, ApiErrorBody)
 ├── .env.example                 # Env template (TABAPI_KEY, TRAFFIC_MONTHS)
@@ -70,7 +73,7 @@ traffic-web/
 **`src/components/`:**
 - Purpose: client-side React components
 - Contains: one component module `traffic-dashboard.tsx` ("use client") with internal private components (`Results`, `Panel`, `MetricCard`, `InfoButton`, `EmptyCell`) plus its test
-- Key files: `src/components/traffic-dashboard.tsx`
+- Key files: `src/components/traffic-dashboard.tsx`, `src/components/seranking-panel.tsx` (standalone SE Ranking section built from `panel.tsx` primitives; fetches `/api/seranking` itself, backlinks strictly on click — not yet wired into the dashboard)
 
 **`src/lib/`:**
 - Purpose: framework-agnostic logic modules — one concern per file, co-located tests
@@ -83,7 +86,7 @@ traffic-web/
 
 **`src/test/`:**
 - Purpose: cross-module test support (fixtures)
-- Contains: `src/test/fixture.ts` — a complete `TrafficResponse` used by multiple test files
+- Contains: `src/test/fixture.ts` — a complete `TrafficResponse` used by multiple test files; `src/test/seranking-fixture.ts` — complete `SeRankingResponse` (11 ad rows for the 10-row cap, 2 competitors) and `SeRankingBacklinksResponse` (750/1000 dofollow)
 
 **`.planning/`:**
 - Purpose: GSD workflow documents (PROJECT, ROADMAP, codebase maps)
@@ -116,6 +119,7 @@ traffic-web/
 **Testing:**
 - `src/app/api/traffic/route.test.ts`: API route integration test
 - `src/components/traffic-dashboard.test.tsx`: component test
+- `src/components/seranking-panel.test.tsx`: SE Ranking section component test (26 Vietnamese tests, fetch mocked via `vi.stubGlobal`)
 - `src/lib/*.test.ts`: unit tests for each lib module (config, domain, format, tabapi)
 - `src/test/fixture.ts`: shared `trafficFixture` (full `TrafficResponse` for `vercel.com`)
 

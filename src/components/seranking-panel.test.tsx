@@ -69,7 +69,6 @@ describe("SerankingPanel", () => {
         signal: expect.any(AbortSignal),
       }),
     );
-    await screen.findByRole("status");
   });
 
   it("hủy yêu cầu đang chờ khi component unmount", () => {
@@ -113,9 +112,9 @@ describe("SerankingPanel", () => {
 
     render(<SerankingPanel domain="acme.com" />);
 
-    expect(
-      await screen.findByRole("heading", { level: 2, name: "SEO & quảng cáo trả phí (SE Ranking)" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("534.575")).toBeInTheDocument();
+
+    expect(screen.getByRole("heading", { level: 2, name: "SEO & quảng cáo trả phí (SE Ranking)" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Từ khóa quảng cáo & mẫu quảng cáo" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Đối thủ quảng cáo" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Backlink (SE Ranking)" })).toBeInTheDocument();
@@ -196,11 +195,11 @@ describe("SerankingPanel", () => {
 
     expect(screen.getByText("acme.com/landing-1")).toBeInTheDocument();
     expect(screen.getByText("Mô tả quảng cáo mẫu 1.")).toBeInTheDocument();
-    expect(screen.getByText("Từ khóa")).toBeInTheDocument();
+    expect(screen.getAllByText("Từ khóa")).toHaveLength(10);
     expect(screen.getByText("từ khóa 1")).toBeInTheDocument();
-    expect(screen.getByText("CPC")).toBeInTheDocument();
+    expect(screen.getAllByText("CPC")).toHaveLength(10);
     expect(screen.getAllByText("$1.25")).toHaveLength(10);
-    expect(screen.getByText("Lượt tìm kiếm")).toBeInTheDocument();
+    expect(screen.getAllByText("Lượt tìm kiếm")).toHaveLength(10);
     expect(screen.getByText("2.000")).toBeInTheDocument();
     expect(screen.getByText("#1 · Trên cùng")).toBeInTheDocument();
     expect(screen.getByText("#2 · Cuối trang")).toBeInTheDocument();

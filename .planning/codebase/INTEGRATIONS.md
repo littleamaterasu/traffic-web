@@ -4,7 +4,9 @@
 
 ## APIs & External Services
 
-**Website traffic intelligence (the only external service):**
+**External data services:**
+
+**Website traffic intelligence:**
 - TabAPI — third-party API providing estimated website traffic metrics (visits, ranks, sources, keywords, regions, AI referrals)
   - Base URL: `https://tabapi.com/api/v1` (hardcoded constant `TABAPI_BASE_URL` in `src/lib/tabapi.ts:3`)
   - Endpoint used: `GET /domains/{domain}/traffic?months={3..12}` (`src/lib/tabapi.ts:52`)
@@ -12,6 +14,14 @@
   - Auth: Bearer token — `Authorization: Bearer ${apiKey}` where `apiKey` comes from `process.env.TABAPI_KEY` (read exclusively in `src/app/api/traffic/route.ts:23`; never exposed to the browser)
   - Billing model: credits are consumed per request, proportional to months returned (3–12); this motivates the caching layer below
   - Error handling: `TrafficApiError` (status, code, Vietnamese user-facing message) — status codes 400 / 402 (insufficient credits) / 422 (not enough data) / 502 are recognized; all others normalize to 502 (`src/lib/tabapi.ts:26-32,65-70`)
+- SE Ranking Data API — supplementary SEO/paid-data estimates (Phase 8; supplements TabAPI, never replaces it)
+  - Base URL: `https://api.seranking.com/v1` (hardcoded constant `SERANKING_BASE_URL` in `src/lib/seranking.ts`)
+  - Endpoints used (`src/lib/seranking.ts`): `GET /domain/overview/worldwide?domain=&currency=USD`, `GET /domain/keywords?domain=&source=&type=adv&limit=`, `GET /domain/competitors?domain=&source=&type=adv&limit=`, `GET /backlinks/summary?target=`
+  - SDK/Client: none — plain `fetch` with `cache: "no-store"` via injectable `fetchImpl` (`requestSeRanking`)
+  - Auth: Token header — `Authorization: Token ${apiKey}` where `apiKey` is passed in by the route (lib never reads `process.env`; `SE_RANKING_API_KEY` is wired server-side in the route plan)
+  - Billing model: credits per endpoint record; `backlinks/summary` costs ~100 credits — isolated per-slice cache, fetched on demand only
+  - Error handling: `SeRankingApiError` (status, code, Vietnamese message) — 401/403→401 `invalid_api_key`, 402 `insufficient_credits`, 429 `rate_limited`, others normalize to 502 `seranking_error`; fetch rejection 502 `network_error`; unparseable OK body 502 `seranking_error`
+  - Caching: four independent `createCachedStore` instances (24h TTL, in-flight dedup), keys `domain` / `domain:source:limit`; `clearSeRankingCache()` for tests
 - Internal REST route `/api/traffic?domain={query}` — `GET` handler in `src/app/api/traffic/route.ts` (Next.js App Router, `runtime = "nodejs"`); normalizes the domain (`src/lib/domain.ts`), injects the API key, and returns either `TrafficResponse` or `ApiErrorBody` (`src/types/traffic.ts`)
   - Client consumer: `TrafficDashboard.search()` in `src/components/traffic-dashboard.tsx:424-464` — `fetch` with 20-second `AbortController` timeout and `ngrok-skip-browser-warning: true` header (for tunnel usage)
 

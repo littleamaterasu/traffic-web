@@ -13,9 +13,19 @@ traffic-web/
 ├── src/
 │   ├── app/                     # Next.js App Router (pages + API)
 │   │   ├── api/
-│   │   │   └── traffic/
-│   │   │       ├── route.ts     # GET /api/traffic — TabAPI proxy endpoint
-│   │   │       └── route.test.ts
+│   │   │   ├── traffic/
+│   │   │   │   ├── route.ts     # GET /api/traffic — TabAPI proxy endpoint
+│   │   │   │   └── route.test.ts
+│   │   │   ├── ads/
+│   │   │   │   ├── route.ts     # GET /api/ads — SerpAPI ads proxy endpoint
+│   │   │   │   └── detail/
+│   │   │   │       └── route.ts # GET /api/ads/detail — SerpAPI ad-detail proxy
+│   │   │   └── seranking/
+│   │   │       ├── route.ts     # GET /api/seranking — SE Ranking 3-slice envelope (never calls backlinks)
+│   │   │       ├── route.test.ts
+│   │   │       └── backlinks/
+│   │   │           ├── route.ts     # GET /api/seranking/backlinks — on-demand ~100-credit backlinks summary
+│   │   │           └── route.test.ts
 │   │   ├── globals.css          # Tailwind v4 import + brutalist theme + responsive tables
 │   │   ├── layout.tsx           # Root layout (<html lang="vi">, metadata)
 │   │   └── page.tsx             # Home page (server component → TrafficDashboard)
@@ -54,8 +64,8 @@ traffic-web/
 
 **`src/app/`:**
 - Purpose: Next.js App Router — file-based routing for pages and API route handlers
-- Contains: `layout.tsx`, `page.tsx`, `globals.css`, and `api/traffic/route.ts`
-- Key files: `src/app/page.tsx` (only page), `src/app/api/traffic/route.ts` (only endpoint)
+- Contains: `layout.tsx`, `page.tsx`, `globals.css`, and `api/{traffic,ads,seranking}/route.ts`
+- Key files: `src/app/page.tsx` (only page), `src/app/api/traffic/route.ts`, `src/app/api/ads/route.ts` (+ `detail/`), `src/app/api/seranking/route.ts` (+ `backlinks/`) — sibling BFF endpoints
 
 **`src/components/`:**
 - Purpose: client-side React components
@@ -84,7 +94,7 @@ traffic-web/
 **Entry Points:**
 - `src/app/layout.tsx`: root layout — `<html lang="vi">`, metadata, global CSS import
 - `src/app/page.tsx`: home page — server component rendering `<TrafficDashboard trafficMonths={getTrafficMonths()} />`
-- `src/app/api/traffic/route.ts`: `GET /api/traffic?domain=...` — the only API endpoint
+- `src/app/api/traffic/route.ts`: `GET /api/traffic?domain=...` — TabAPI BFF endpoint; siblings `src/app/api/ads/route.ts` (SerpAPI) and `src/app/api/seranking/route.ts` + `src/app/api/seranking/backlinks/route.ts` (SE Ranking; backlinks is the only route touching `/backlinks/summary`)
 - `package.json:6-14`: CLI scripts (`dev`, `build`, `start`, `lint`, `test`)
 
 **Configuration:**

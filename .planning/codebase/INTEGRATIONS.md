@@ -24,6 +24,9 @@
   - Caching: four independent `createCachedStore` instances (24h TTL, in-flight dedup), keys `domain` / `domain:source:limit`; `clearSeRankingCache()` for tests
 - Internal REST route `/api/traffic?domain={query}` — `GET` handler in `src/app/api/traffic/route.ts` (Next.js App Router, `runtime = "nodejs"`); normalizes the domain (`src/lib/domain.ts`), injects the API key, and returns either `TrafficResponse` or `ApiErrorBody` (`src/types/traffic.ts`)
   - Client consumer: `TrafficDashboard.search()` in `src/components/traffic-dashboard.tsx:424-464` — `fetch` with 20-second `AbortController` timeout and `ngrok-skip-browser-warning: true` header (for tunnel usage)
+- Internal REST route `/api/seranking?domain={query}&source={db}` — `GET` handler in `src/app/api/seranking/route.ts` (Phase 8, `runtime = "nodejs"`); validates domain (`src/lib/domain.ts`) then `source` (`/^[a-z]{2}$/`, default `us`, uppercase rejected), reads `SE_RANKING_API_KEY`, and returns the per-slice envelope `SeRankingResponse` (`src/types/seranking.ts`) — `{domain, source, overview, keywords, competitors}` each `{data|error}` via `Promise.allSettled` with `LIST_LIMIT = 10`; one failing slice never fails the others and this route NEVER calls `/backlinks/summary` (100 credits)
+- Internal REST route `/api/seranking/backlinks?domain={query}` — `GET` handler in `src/app/api/seranking/backlinks/route.ts` (Phase 8); the ONLY route calling `/backlinks/summary` (documented ~100 credits/record) — intended for explicit on-demand user action; returns `SeRankingBacklinksResponse`, where upstream failure degrades to `backlinks:{data:null,error:{code,message}}` with HTTP 200 (only invalid domain 400 / missing key 500 are HTTP errors)
+  - Client consumer: none yet — the dashboard section lands in the remaining Phase 8 UI plan; missing key yields 500 `missing_api_key` with Vietnamese message from both routes
 
 ## Data Storage
 
@@ -67,6 +70,7 @@
 
 **Required env vars (server-side, defined in `.env.local`, template in `.env.example`):**
 - `TABAPI_KEY` — **required** for any successful lookup; missing key returns 500 `missing_api_key` (`src/app/api/traffic/route.ts:23-26`)
+- `SE_RANKING_API_KEY` — required for `/api/seranking*` data; missing/empty key returns 500 `missing_api_key` with Vietnamese message (`src/app/api/seranking/route.ts`, `src/app/api/seranking/backlinks/route.ts` — the only two readers)
 - `TRAFFIC_MONTHS` — optional; integer 3–12, default 3; validated by `getTrafficMonths()` in `src/lib/config.ts:5-23`; invalid values fail the request with 500 `invalid_configuration`
 
 **Secrets location:**

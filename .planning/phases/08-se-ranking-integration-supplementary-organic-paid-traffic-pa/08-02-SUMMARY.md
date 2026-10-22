@@ -175,3 +175,11 @@ None - no external service configuration required by this plan. (`SE_RANKING_API
 ---
 *Phase: 08-se-ranking-integration-supplementary-organic-paid-traffic-pa*
 *Completed: 2026-10-22*
+
+## Self-Check: PASSED
+
+- All 5 key files exist on disk (4 source + SUMMARY)
+- Commits `ab5d84f` (RED), `2c55a1c` (GREEN), `a93bcf2` (metadata) present in git log
+- RED gate: `test(08-02)` commit precedes GREEN `feat(08-02)` commit; `check tdd-red-evidence` → `RED_EVIDENCE_OK` (13 tests, 13 failed, target test failed on the envelope assertion)
+- Full suite 99/99 (13 files), `npx tsc --noEmit` 0, `npm run lint` 0
+- All 7 acceptance criteria verified post-GREEN: directory vitest run exit 0; `runtime = "nodejs"` in both routes; `Promise.allSettled` in main route; `getSeRankingBacklinks` absent from main route and present only in the backlinks route; `process.env.SE_RANKING_API_KEY` only in the two route files; `git diff --stat` for TabAPI surface empty; tsc + lint clean

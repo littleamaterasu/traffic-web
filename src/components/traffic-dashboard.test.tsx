@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { trafficFixture } from "@/test/fixture";
+import { serankingFixture } from "@/test/seranking-fixture";
 import { TrafficDashboard } from "./traffic-dashboard";
 
 describe("TrafficDashboard", () => {
@@ -119,5 +120,54 @@ describe("TrafficDashboard", () => {
 
     expect(await screen.findByText("Không tìm thấy độ phủ traffic")).toBeInTheDocument();
     expect(screen.getByText("Chưa có dữ liệu referral từ AI assistants.")).toBeInTheDocument();
+  });
+
+  it("gọi /api/seranking và hiển thị phần SE Ranking bên dưới các panel TabAPI sau khi báo cáo tải xong", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((input: RequestInfo | URL) => {
+        const url = typeof input === "string" ? input : input.toString();
+        if (url.startsWith("/api/seranking")) {
+          return Promise.resolve({ ok: true, json: async () => serankingFixture });
+        }
+        return Promise.resolve({ ok: true, json: async () => trafficFixture });
+      }),
+    );
+
+    render(<TrafficDashboard />);
+    await user.click(screen.getByRole("button", { name: "vercel.com" }));
+
+    expect(await screen.findByText("Agentic Infrastructure - Vercel")).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/seranking?domain=vercel.com",
+      expect.objectContaining({
+        headers: { "ngrok-skip-browser-warning": "true" },
+        signal: expect.any(AbortSignal),
+      }),
+    );
+    await screen.findByText("534.575");
+    expect(screen.getByRole("heading", { level: 2, name: "SEO & quảng cáo trả phí (SE Ranking)" })).toBeInTheDocument();
+  });
+
+  it("giữ nguyên báo cáo TabAPI và hiển thị alert của phần SE Ranking khi yêu cầu SE Ranking thất bại", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((input: RequestInfo | URL) => {
+        const url = typeof input === "string" ? input : input.toString();
+        if (url.startsWith("/api/seranking")) {
+          return Promise.reject(new Error("mạng lỗi"));
+        }
+        return Promise.resolve({ ok: true, json: async () => trafficFixture });
+      }),
+    );
+
+    render(<TrafficDashboard />);
+    await user.click(screen.getByRole("button", { name: "vercel.com" }));
+
+    expect(await screen.findByText("Agentic Infrastructure - Vercel")).toBeInTheDocument();
+    expect(screen.getByText("Lượt truy cập theo tháng")).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Không thể tải dữ liệu SE Ranking lúc này.");
   });
 });

@@ -157,7 +157,7 @@ describe("SE Ranking client", () => {
     const result = await fetchSeRankingKeywords("acme.com", "us", 10, TEST_KEY, fetchMock as unknown as typeof fetch);
 
     const url = new URL(String(fetchMock.mock.calls[0][0]));
-    expect(url.pathname).toBe("/domain/keywords");
+    expect(url.origin + url.pathname).toBe("https://api.seranking.com/v1/domain/keywords");
     expect(url.searchParams.get("domain")).toBe("acme.com");
     expect(url.searchParams.get("source")).toBe("us");
     expect(url.searchParams.get("type")).toBe("adv");
@@ -181,7 +181,7 @@ describe("SE Ranking client", () => {
     const result = await fetchSeRankingCompetitors("acme.com", "us", 10, TEST_KEY, fetchMock as unknown as typeof fetch);
 
     const url = new URL(String(fetchMock.mock.calls[0][0]));
-    expect(url.pathname).toBe("/domain/competitors");
+    expect(url.origin + url.pathname).toBe("https://api.seranking.com/v1/domain/competitors");
     expect(url.searchParams.get("domain")).toBe("acme.com");
     expect(url.searchParams.get("source")).toBe("us");
     expect(url.searchParams.get("type")).toBe("adv");
@@ -204,7 +204,7 @@ describe("SE Ranking client", () => {
     const result = await fetchSeRankingBacklinks("acme.com", TEST_KEY, fetchMock as unknown as typeof fetch);
 
     const url = new URL(String(fetchMock.mock.calls[0][0]));
-    expect(url.pathname).toBe("/backlinks/summary");
+    expect(url.origin + url.pathname).toBe("https://api.seranking.com/v1/backlinks/summary");
     expect(url.searchParams.get("target")).toBe("acme.com");
     expect(result).toEqual({
       target: "acme.com",
@@ -274,7 +274,7 @@ describe("SE Ranking client", () => {
   });
 
   it("getSeRankingX cùng tham số chỉ gọi mạng một lần và không đụng chéo store", async () => {
-    const overviewMock = vi.fn().mockResolvedValue(jsonResponse(overviewUpstream));
+    const overviewMock = vi.fn().mockImplementation(async () => jsonResponse(overviewUpstream));
     await getSeRankingOverview("acme.com", TEST_KEY, overviewMock as unknown as typeof fetch);
     await getSeRankingOverview("acme.com", TEST_KEY, overviewMock as unknown as typeof fetch);
     expect(overviewMock).toHaveBeenCalledTimes(1);
@@ -286,31 +286,31 @@ describe("SE Ranking client", () => {
   });
 
   it("getSeRankingKeywords/Competitors tách cache theo source và limit", async () => {
-    const keywordsMock = vi.fn().mockResolvedValue(jsonResponse(keywordsUpstream));
+    const keywordsMock = vi.fn().mockImplementation(async () => jsonResponse(keywordsUpstream));
     await getSeRankingKeywords("acme.com", "us", 10, TEST_KEY, keywordsMock as unknown as typeof fetch);
     await getSeRankingKeywords("acme.com", "vn", 10, TEST_KEY, keywordsMock as unknown as typeof fetch);
     await getSeRankingKeywords("acme.com", "us", 20, TEST_KEY, keywordsMock as unknown as typeof fetch);
     await getSeRankingKeywords("acme.com", "us", 10, TEST_KEY, keywordsMock as unknown as typeof fetch);
     expect(keywordsMock).toHaveBeenCalledTimes(3);
 
-    const competitorsMock = vi.fn().mockResolvedValue(jsonResponse(competitorsUpstream));
+    const competitorsMock = vi.fn().mockImplementation(async () => jsonResponse(competitorsUpstream));
     await getSeRankingCompetitors("acme.com", "us", 10, TEST_KEY, competitorsMock as unknown as typeof fetch);
     await getSeRankingCompetitors("acme.com", "uk", 10, TEST_KEY, competitorsMock as unknown as typeof fetch);
     expect(competitorsMock).toHaveBeenCalledTimes(2);
   });
 
   it("backlinks có store riêng, cùng domain chỉ gọi một lần", async () => {
-    const backlinksMock = vi.fn().mockResolvedValue(jsonResponse(backlinksUpstream));
+    const backlinksMock = vi.fn().mockImplementation(async () => jsonResponse(backlinksUpstream));
     await getSeRankingBacklinks("acme.com", TEST_KEY, backlinksMock as unknown as typeof fetch);
     await getSeRankingBacklinks("acme.com", TEST_KEY, backlinksMock as unknown as typeof fetch);
     expect(backlinksMock).toHaveBeenCalledTimes(1);
   });
 
   it("clearSeRankingCache xóa cả bốn store", async () => {
-    const overviewMock = vi.fn().mockResolvedValue(jsonResponse(overviewUpstream));
-    const keywordsMock = vi.fn().mockResolvedValue(jsonResponse(keywordsUpstream));
-    const competitorsMock = vi.fn().mockResolvedValue(jsonResponse(competitorsUpstream));
-    const backlinksMock = vi.fn().mockResolvedValue(jsonResponse(backlinksUpstream));
+    const overviewMock = vi.fn().mockImplementation(async () => jsonResponse(overviewUpstream));
+    const keywordsMock = vi.fn().mockImplementation(async () => jsonResponse(keywordsUpstream));
+    const competitorsMock = vi.fn().mockImplementation(async () => jsonResponse(competitorsUpstream));
+    const backlinksMock = vi.fn().mockImplementation(async () => jsonResponse(backlinksUpstream));
 
     await getSeRankingOverview("acme.com", TEST_KEY, overviewMock as unknown as typeof fetch);
     await getSeRankingKeywords("acme.com", "us", 10, TEST_KEY, keywordsMock as unknown as typeof fetch);

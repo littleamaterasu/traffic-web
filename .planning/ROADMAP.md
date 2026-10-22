@@ -154,12 +154,12 @@ Plans:
   5. Without `SE_RANKING_API_KEY`, or when SE Ranking fails or has no data, the section shows a Vietnamese empty/error state and the rest of the report renders; the key never reaches the browser
   6. Repeated lookups within 24h are served from cache with in-flight dedup
 
-**Plans**: 1/4 plans executed
+**Plans**: 2/4 plans executed
 
 Plans:
 
 - [x] 08-01-PLAN.md — Types, SE Ranking client with four per-slice cached stores, tests (wave 1)
-- [ ] 08-02-PLAN.md — `GET /api/seranking` (overview/keywords/competitors) and on-demand `GET /api/seranking/backlinks` routes with tests (wave 2)
+- [x] 08-02-PLAN.md — `GET /api/seranking` (overview/keywords/competitors) and on-demand `GET /api/seranking/backlinks` routes with tests (wave 2)
 - [ ] 08-03-PLAN.md — `SerankingPanel` component with "Tải backlink" on-demand button, fixtures and tests (wave 2)
 - [ ] 08-04-PLAN.md — Wire panel into dashboard, fix affected tests, sanitize `.env.example` (wave 3)
 
@@ -180,7 +180,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 5. Persistence & Domain Profile | 0/TBD | Not started | - |
 | 6. Google Ad Longevity (SerpAPI) | 0/TBD | Not started | - |
 | 7. Affiliate Terms & Unit Economics | 0/TBD | Not started | - |
-| 8. SE Ranking Integration | 1/4 | In Progress|  |
+| 8. SE Ranking Integration | 2/4 | In Progress|  |
 
 ## Coverage
 

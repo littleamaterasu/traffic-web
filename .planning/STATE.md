@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 08
 current_phase_name: SE Ranking Integration (Supplementary SEO / Paid Data)
 status: executing
-stopped_at: Completed 08-01-PLAN.md
-last_updated: "2026-10-22T04:49:39.287Z"
+stopped_at: Completed 08-02-PLAN.md
+last_updated: "2026-10-22T05:06:54.285Z"
 last_activity: 2026-10-22
 last_activity_desc: Phase 08 execution started
-state_head: c11ce6fcb8e9a3baf4e56a971d7220314c1e870c
+state_head: 2c55a1c4f3190749f5af161f90401889424dbd52
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 6
-  completed_plans: 3
+  completed_plans: 4
   percent: 13
 ---
 
@@ -41,7 +41,7 @@ See: .planning/PROJECT.md (updated 2026-10-14)
 ## Current Position
 
 Phase: 08 (SE Ranking Integration (Supplementary SEO / Paid Data)) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-10-22 — Phase 08 execution started
 
@@ -74,6 +74,7 @@ Progress: [█░░░░░░░░░] 14%
 | Phase 1 P2 | 10min | 3 tasks | 3 files |
 | Phase 1 P1 | 0.2 | 3 tasks | 3 files |
 | Phase 08 P01 | 13min | 1 tasks | 3 files |
+| Phase 08 P02 | 5min | 1 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,9 @@ Recent decisions affecting current work:
 - [Phase 1]: Panel primitives extracted verbatim to src/components/panel.tsx; PANEL_INFO/SOURCE_LABELS stay consumer-owned (D-01/D-02)
 - [Phase 08]: Per-slice cache isolation: four createCachedStore instances in seranking.ts (overview, keywords, competitors, backlinks) keyed domain / domain:source:limit - backlinks (100 credits) is never refetched by keyword requests — Backlinks are loaded on demand only (locked 2026-10-22); a separate route will call getSeRankingBacklinks, nothing auto-fetches it
 - [Phase 08]: SE Ranking error contract fixed at lib boundary: invalid_api_key / insufficient_credits / rate_limited / seranking_error / network_error with Vietnamese messages; key only in the Authorization header, never in messages, cache keys or thrown data — Mirrors ads-transparency.ts failure() mapping; upstream error bodies are not passed through
+- [Phase 08]: Phase 08: /api/seranking returns a per-slice {data|error} envelope via Promise.allSettled (LIST_LIMIT=10, source default 'us' validated /^[a-z]{2}$/, uppercase rejected) and never imports the backlinks client — the 100-credit backlinks/summary call lives only behind /api/seranking/backlinks
+- [Phase 08]: Phase 08: backlinks upstream failure returns HTTP 200 with an error slice (mirrors the envelope contract); only invalid_domain (400) and missing_api_key (500) are HTTP errors, keeping the UI render path uniform
+- [Phase 08]: Phase 08: route validation order domain -> source -> key so bad input never surfaces as a key-configuration error nor triggers an upstream call; errorResponse/toErrorSlice duplicated (~10 lines) across the two routes per plan sanction instead of a shared helper outside the plan file list
 
 ### Pending Todos
 
@@ -115,6 +119,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-22T04:49:20.029Z
-Stopped at: Completed 08-01-PLAN.md
+Last session: 2026-10-22T05:05:03.817Z
+Stopped at: Completed 08-02-PLAN.md
 Resume file: None

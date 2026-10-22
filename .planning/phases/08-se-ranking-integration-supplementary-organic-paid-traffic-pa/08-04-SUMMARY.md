@@ -160,3 +160,13 @@ None - no external service configuration required by this plan. (The real key va
 ---
 *Phase: 08-se-ranking-integration-supplementary-organic-paid-traffic-pa*
 *Completed: 2026-10-22*
+
+## Self-Check: PASSED
+
+- All 3 modified source files exist on disk + SUMMARY exists
+- All 6 commits present in git log: `d5be891` (RED), `54e55ad` (GREEN), `08cfb9e` (env sanitize), `3d2ec1d` (SUMMARY), `9256a60` (state/roadmap/requirements), `a118a41` (machine state)
+- TDD gate: `test(08-04)` commit `d5be891` precedes `feat(08-04)` commit `54e55ad`; `check tdd-red-evidence` → `RED_EVIDENCE_OK` (2 of 7 tests failed on target assertions, 5 pre-existing passed)
+- Plan-level verification re-run post-completion: `npx vitest run` 127/127 (14 files, exit 0), `npx tsc --noEmit` 0, `npm run lint` 0
+- All 8 acceptance criteria (4 per task) verified: component suite exit 0; `SerankingPanel key={data.domain}` grep match (line 303); TabAPI/types diff empty; lint 0; `^SE_RANKING_API_KEY=$` match (line 12); zero non-empty key assignments; `^TRAFFIC_MONTHS=3$` match (line 4); full suite/type-check/lint exit 0
+- Committed `.env.example` (08cfb9e..HEAD) contains only empty key assignments; no key-shaped values anywhere in `.planning/`
+- Working tree after execution contains only the pre-existing out-of-scope untracked Vietnamese notes `.md` (never staged)

@@ -33,7 +33,8 @@ A marketing researcher enters a domain and receives one readable report that exp
 - [ ] Ad creatives view — the creatives those advertisers run
 - [ ] Consolidated readable report — the sections read as one coherent researcher report rather than scattered raw tables
 - [ ] Local persistence — snapshots and researcher-entered affiliate inputs stored per domain (Phase 5)
-- [ ] Domain profile and derived callouts — WHOIS age, Tier-1 geo share, brand/non-brand keywords (Phase 5)
+- [ ] Business-sustainability block — WHOIS age and volatility (snapshot-based), Trustpilot score + review count (Phase 5)
+- [ ] Derived callouts — Tier-1 geo share, brand/non-brand keywords (Phase 5)
 - [ ] Google ad longevity via SerpAPI Ads Transparency — Winning Ad Ratio, ASI (Phase 6)
 - [ ] Affiliate terms in three tiers (auto / suggested-with-source / manual) and unit economics: Projected EPC, Max CPC, Arbitrage Spread (Phase 7)
 
@@ -42,7 +43,7 @@ A marketing researcher enters a domain and receives one readable report that exp
 <!-- Explicit boundaries. Includes reasoning to prevent re-adding. -->
 
 - User authentication / invite system — single-user local tool; "invited researcher" is the persona, not an auth feature
-- Meta / TikTok ads, Trustpilot, Wayback — deferred to a later milestone (SOCL-01..03); Google only for now
+- Meta / TikTok ads, Wayback, Scamadviser/Reddit — deferred to a later milestone (SOCL-01..03); Google only for now
 - PDF/CSV export — not requested for this phase
 - First-party analytics integration — TabAPI estimates are the sole data source
 - Mobile native app — responsive web is enough
@@ -77,7 +78,9 @@ A marketing researcher enters a domain and receives one readable report that exp
 | Source referring sites + advertisers/creatives from TabAPI | Existing integration and key management already in place | — Pending (endpoint availability unverified) |
 | Change direction to affiliate-offer evaluator (2026-10-14) | Domain-check checklist extends beyond traffic into ad longevity, affiliate terms, EPC | ✓ Decided — Core Value updated; Phases 5–7 added |
 | Accept local DB persistence (2026-10-14) | Needed for snapshots, saved affiliate inputs, ad longevity history | ✓ Decided — from Phase 5; engine TBD |
-| Google-only second data source: SerpAPI Ads Transparency (2026-10-14) | Only path to creative first/last-shown dates; Meta/TikTok scrapers fragile | ✓ Decided — Meta/TikTok/Trustpilot deferred |
+| Google-only second data source: SerpAPI Ads Transparency (2026-10-14) | Only path to creative first/last-shown dates; Meta/TikTok scrapers fragile | ✓ Decided — Meta/TikTok deferred |
+| Business sustainability = WHOIS + Trustpilot only (2026-10-15) | Answers "how old/stable is the domain" and "what do customers say"; Wayback/Scamadviser/Reddit not needed yet | ✓ Decided — Trustpilot moved into Phase 5; source (official API vs page read) settled at its planning gate |
+| Domain volatility from own RDAP snapshots (2026-10-15) | TabAPI RDAP returns the current record only; no ownership history without a paid provider | ✓ Decided — history starts at first lookup, labeled as such |
 | Affiliate inputs in three tiers: auto / suggested (source snippet, confirm) / manual (2026-10-14) | Payout, cookie, policy live in each program's terms; CR and margin are researcher assumptions | ✓ Decided — scans are on-demand only |
 | Cache factory: stateless `createCachedStore<T>()` with factory-default TTL/capacity; FIFO-by-insertion eviction, not LRU (Phase 1) | Zero-behavior-change phase — factory reproduces old tabapi.ts get sequence step-for-step; one home for the 24h/100-entry values | ✓ Decided — GRND-02 shipped |
 | Injectable `now` clock seam in the cache factory (Phase 1) | TTL testability without fake timers | ✓ Decided — GRND-02 shipped |

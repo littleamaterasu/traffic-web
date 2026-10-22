@@ -6,7 +6,7 @@
     {
       "number": "1",
       "name": "Groundwork — Reusable Primitives & Cache Factory",
-      "status": "in_progress"
+      "status": "complete"
     },
     {
       "number": "2",
@@ -22,12 +22,32 @@
       "number": "4",
       "name": "Consolidated Readable Report",
       "status": "pending"
+    },
+    {
+      "number": "5",
+      "name": "Persistence & Domain Profile",
+      "status": "pending"
+    },
+    {
+      "number": "6",
+      "name": "Google Ad Longevity (SerpAPI)",
+      "status": "pending"
+    },
+    {
+      "number": "7",
+      "name": "Affiliate Terms & Unit Economics",
+      "status": "pending"
+    },
+    {
+      "number": "8",
+      "name": "SE Ranking Integration",
+      "status": "pending"
     }
   ],
   "next": {
     "command": "/gsd:progress --next",
-    "label": "Advance to the next step (verify)",
-    "reason": "Phase 1 of 4 · 0% · ready to verify"
+    "label": "Advance to the next step",
+    "reason": "Phase 08 of 8 · 13% · executing"
   },
-  "updated_at": "2026-10-13T14:53:13.767Z"
+  "updated_at": "2026-10-22T04:29:27.623Z"
 }

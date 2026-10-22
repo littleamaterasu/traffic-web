@@ -45,7 +45,7 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ### Ad Creatives (enhanced)
 
-- **CRTV-02b**: True ad creatives from Google Ads Transparency Center via SerpAPI behind optional `SERPAPI_KEY` (first/last shown dates, image/video assets)
+- ~~**CRTV-02b**~~: Promoted to v1 as ADLG-01 (2026-10-14)
 - **CRTV-03**: Landing-page screenshots for creatives (TabAPI Web Reader + download-and-serve, 1 credit on demand)
 
 ### Referring Sites (enhanced)
@@ -58,6 +58,61 @@ Deferred to future release. Tracked but not in current roadmap.
 - **ADVR-05**: Per-advertiser estimated spend/traffic metrics (blocked: no data source)
 - **ADVR-06**: Multi-keyword SERP fan-out for deeper advertiser coverage (credit-budget decision deferred)
 
+### Affiliate Domain Vetting (milestone direction decided 2026-10-14)
+
+Source: domain-check checklist; analysis and decisions in `.planning/research/DOMAIN-CHECK-FRAMEWORK.md`. Google-only for ads; Meta/TikTok deferred (see v2).
+
+**Persistence & Domain Profile**
+
+- [ ] **PERS-01**: Lookups, snapshots, and researcher-entered affiliate inputs persist per domain across server restarts in a local database (engine chosen at Phase 5 planning gate)
+- [ ] **PERS-02**: Traffic and ad data are stored as timestamped snapshots so time-series can be derived later
+- [ ] **VET-01**: Researcher sees zero-credit derived callouts from existing data — Tier-1 geo share (US/UK/CA/AU), brand vs non-brand keyword split, referral/paid-search share, threshold badges (visits, bounce rate)
+- [ ] **VET-02**: Researcher sees domain age (years since creation), registrar, expiry, last-updated date, status flags, nameservers, and privacy-protected indicator from TabAPI WHOIS/RDAP (1 credit, cached 24h), with a short Vietnamese verdict on age (e.g., <1 năm / 1–3 năm / >3 năm per the checklist's 2–3 year trust threshold)
+- [ ] **VET-06**: Researcher sees domain volatility — changes in registrar, nameservers, status, or expiry between stored RDAP snapshots, labeled "theo dõi từ <date>" because upstream RDAP exposes no ownership history; the first lookup shows "chưa có lịch sử" rather than "ổn định"
+- [ ] **TRST-01**: Researcher sees the domain's Trustpilot score and review count (with link to the Trustpilot page), fetched server-side and cached 24h
+- [ ] **TRST-02**: Researcher sees a Vietnamese empty state when the domain has no Trustpilot page or the source is unreachable, without the report failing; the figure is labeled with source and fetch date
+- [ ] **VET-03**: Researcher sees an affiliate-link signal from the Backlinks sample (`?ref=`/`?via=`/`?aff=` in `to_url`)
+
+**Google Ad Longevity (SerpAPI)**
+
+- [ ] **ADLG-01**: Researcher sees Google Ads Transparency creatives for the domain with first/last shown dates, via SerpAPI behind a server-side optional `SERPAPI_KEY`
+- [ ] **ADLG-02**: Researcher sees active Google ad count and Winning Ad Ratio (share of ads running >30d)
+- [ ] **ADLG-03**: Researcher sees unique advertiser count and Advertiser Saturation Index (ASI)
+- [ ] **ADLG-04**: Without `SERPAPI_KEY`, the report falls back to the Phase 3 SERP-synthesis view and labels longevity as unavailable
+
+**SE Ranking (supplementary SEO / paid data)**
+
+- [ ] **SERK-01**: Researcher sees worldwide organic and paid keyword count, estimated traffic and traffic value from SE Ranking `domain/overview/worldwide`, labeled as SE Ranking estimates distinct from TabAPI
+- [ ] **SERK-02**: Researcher sees top paid keywords from `domain/keywords?type=adv` with CPC, volume, position, ad block, ad title/description/display URL and landing page
+- [ ] **SERK-03**: Researcher sees advertiser competitors from `domain/competitors?type=adv` with common-keyword counts and relevance
+- [ ] **SERK-04**: Researcher can load, on explicit click only (never automatically; ~100 credits), a backlinks summary from `backlinks/summary` (backlinks, referring domains, dofollow share, domain inlink rank, top anchors)
+- [ ] **SERK-05**: `SE_RANKING_API_KEY` is read server-side only; absent key, upstream error or empty data yields a Vietnamese state without failing the report; results are cached 24h with in-flight dedup via `createCachedStore`
+
+**Affiliate Terms (three-tier data)**
+
+- [ ] **AFFL-01**: Tier 1 (auto) — researcher sees whether the domain has an affiliate program, its link, and the detected network (from URL pattern), at ≤1 credit
+- [ ] **AFFL-02**: Tier 2 (suggested) — on an explicit "Lấy thông tin affiliate" action, Web Reader scans the program/ToS pages and proposes payout, cookie days, and brand-bidding/direct-linking mentions, each with source snippet and link; scan costs ~2–3 credits and never runs automatically
+- [ ] **AFFL-03**: Tier 3 (manual) — researcher can enter or correct payout, cookie, policy flags, EPC, and manager notes; each field stores `source` (auto/suggested/manual), `source_url`, and `confirmed_at`, and is shown with a source badge
+
+**Unit Economics**
+
+- [ ] **ECON-01**: Researcher can set payout, funnel CR (default 1.5–3%), and target margin in a collapsed panel with defaults; report works fully without them
+- [ ] **ECON-02**: Researcher sees Projected EPC, Max CPC, and Arbitrage Spread against the domain's keyword CPC, computed client-side at zero credits
+- [ ] **ECON-03**: Results based on unconfirmed (suggested) inputs are labeled as unconfirmed estimates
+
+### Social Ads & Reputation (deferred by decision, 2026-10-14)
+
+- **SOCL-01**: Meta Ad Library active-ad volume and creative age (needs third-party scraper; official API excludes commercial non-EU ads)
+- **SOCL-02**: TikTok Creative Center ads
+- **SOCL-03**: Wayback history, Scamadviser/Reddit risk signals (Trustpilot promoted to v1 as TRST-01/02 on 2026-10-15)
+- **TRST-03**: Individual Trustpilot review text/themes (refund, scam keywords), rating distribution, review trend over time
+
+### Scoring & Ranking (v2)
+
+- **VET-04**: Heuristic referrer classification (`is_affiliate_site`) enabling Affiliate Reliance Score (ARS)
+- **VET-05**: Composite Affiliate Opportunity Score (AOS) and ranking of saved domains (persistence now accepted; multi-domain mode still undecided)
+- **AFFL-04**: Pull payout/EPC directly from Impact/CJ/ShareASale/PartnerStack publisher APIs (needs joined accounts, per-network integration)
+
 ## Out of Scope
 
 Explicitly excluded. Documented to prevent scope creep.
@@ -65,7 +120,6 @@ Explicitly excluded. Documented to prevent scope creep.
 | Feature | Reason |
 |---------|--------|
 | User authentication / invite system | Single-user local tool; "invited researcher" is the persona, not an auth feature |
-| Database / persistence | In-memory cache is sufficient; server restart clearing cache is accepted |
 | Google Ads API (official) integration | Advertiser-scoped (OAuth + developer token) — cannot look up third-party advertisers |
 | Scraping Google Ads Transparency Center directly | Client-rendered JS shell, ToS-risky; SerpAPI is the sanctioned path in v2 |
 | Per-advertiser spend/impressions metrics | No viable data source; would be false precision |
@@ -94,13 +148,36 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RPT-02 | Phase 4 | Pending |
 | RPT-03 | Phase 4 | Pending |
 | RPT-04 | Phase 4 | Pending |
+| PERS-01 | Phase 5 | Pending |
+| PERS-02 | Phase 5 | Pending |
+| VET-01 | Phase 5 | Pending |
+| VET-02 | Phase 5 | Pending |
+| VET-06 | Phase 5 | Pending |
+| TRST-01 | Phase 5 | Pending |
+| TRST-02 | Phase 5 | Pending |
+| ADLG-01 | Phase 6 | Pending |
+| ADLG-02 | Phase 6 | Pending |
+| ADLG-03 | Phase 6 | Pending |
+| ADLG-04 | Phase 6 | Pending |
+| AFFL-01 | Phase 7 | Pending |
+| AFFL-02 | Phase 7 | Pending |
+| AFFL-03 | Phase 7 | Pending |
+| VET-03 | Phase 7 | Pending |
+| ECON-01 | Phase 7 | Pending |
+| ECON-02 | Phase 7 | Pending |
+| ECON-03 | Phase 7 | Pending |
+| SERK-01 | Phase 8 | Pending |
+| SERK-02 | Phase 8 | Pending |
+| SERK-03 | Phase 8 | Pending |
+| SERK-04 | Phase 8 | Pending |
+| SERK-05 | Phase 8 | Pending |
 
 **Coverage:**
 
-- v1 requirements: 17 total
-- Mapped to phases: 17
+- v1 requirements: 40 total
+- Mapped to phases: 40
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-10-13*
-*Last updated: 2026-10-13 after roadmap creation (traceability mapped to 4 phases)*
+*Last updated: 2026-10-14 after direction change (added PERS/VET/ADLG/AFFL/ECON, mapped to Phases 5–7)*

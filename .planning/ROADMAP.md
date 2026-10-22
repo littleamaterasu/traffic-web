@@ -15,9 +15,10 @@ A brownfield extension of the working TabAPI-backed traffic dashboard. Four phas
 - [ ] **Phase 2: Referring Sites (Backlinks Slice)** - First new report section: top referring domains from the TabAPI Backlinks API, honestly labeled as link-based, with 24h credit-saving cache
 - [ ] **Phase 3: Related Advertisers & Ad Creatives (SERP Slice)** - Advertisers synthesized from Google Search `paid_results`, plus the creatives view over the same payload (zero extra credits)
 - [ ] **Phase 4: Consolidated Readable Report** - Canonical section order, short Vietnamese takeaways per section, uniform empty-state rendering, and per-section failure isolation
-- [ ] **Phase 5: Persistence & Domain Profile** - Local DB for snapshots and saved inputs, WHOIS domain profile, zero-credit derived callouts (Tier-1 share, brand/non-brand keywords)
+- [ ] **Phase 5: Persistence & Domain Profile** - Local DB for snapshots and saved inputs, business-sustainability block (WHOIS age + volatility, Trustpilot score/reviews), zero-credit derived callouts (Tier-1 share, brand/non-brand keywords)
 - [ ] **Phase 6: Google Ad Longevity (SerpAPI)** - Ads Transparency creatives with first/last shown dates, Winning Ad Ratio, ASI, graceful fallback without `SERPAPI_KEY`
 - [ ] **Phase 7: Affiliate Terms & Unit Economics** - Three-tier affiliate data (auto / suggested / manual) and Projected EPC, Max CPC, Arbitrage Spread
+- [ ] **Phase 8: SE Ranking Integration** - Supplementary organic/paid estimates, paid keywords with ad copy, advertiser competitors and backlinks summary from SE Ranking Data API, clearly source-labeled
 
 ## Phase Details
 
@@ -92,18 +93,20 @@ Plans:
 
 ### Phase 5: Persistence & Domain Profile
 
-**Goal**: Lookups and researcher inputs survive restarts, and the report gains a domain profile and derived callouts computed from data already fetched.
+**Goal**: Lookups and researcher inputs survive restarts, and the report opens with a business-sustainability block (how old and stable is the domain, what do customers say) plus derived callouts computed from data already fetched.
 **Depends on**: Phase 4
-**Requirements**: PERS-01, PERS-02, VET-01, VET-02
+**Requirements**: PERS-01, PERS-02, VET-01, VET-02, VET-06, TRST-01, TRST-02
 **Success Criteria** (what must be TRUE):
 
   1. Researcher reopens a previously analyzed domain after a server restart and sees its saved snapshot and inputs
-  2. Researcher sees domain age/registrar/expiry from WHOIS/RDAP, cached and deduplicated like other sections
-  3. Researcher sees Tier-1 geo share, brand vs non-brand keyword split, and threshold badges without extra credits
+  2. Researcher sees domain age, registrar, expiry, last-updated, nameservers and a Vietnamese age verdict from WHOIS/RDAP, cached and deduplicated like other sections
+  3. Researcher sees volatility as changes between stored snapshots, labeled with the tracking start date; a first-time lookup says no history yet instead of "stable"
+  4. Researcher sees the Trustpilot score, review count and link, labeled with source and fetch date; a domain without a Trustpilot page shows a Vietnamese empty state and the report keeps rendering
+  5. Researcher sees Tier-1 geo share, brand vs non-brand keyword split, and threshold badges without extra credits
 
 **Plans**: TBD
 **UI hint**: yes
-**Planning gate**: choose DB engine (e.g., SQLite) and migration approach; decide how it coexists with `createCachedStore`; update AGENTS.md "no database" constraints.
+**Planning gate**: (a) choose DB engine (e.g., SQLite) and migration approach; decide how it coexists with `createCachedStore`; update AGENTS.md "no database" constraints. (b) Trustpilot source: verify with one live call whether the official Business Units API (API key, find by domain) returns score + review count for arbitrary domains, versus reading the public page via TabAPI Web Reader (JSON-LD `aggregateRating`; ToS and bot-protection risk). Pick one; fail soft into TRST-02. (c) Decide whether a paid WHOIS-history provider is worth adding; default is own snapshots only (VET-06).
 
 ### Phase 6: Google Ad Longevity (SerpAPI)
 
@@ -137,6 +140,32 @@ Plans:
 **UI hint**: yes
 **Planning gate**: validate Web Reader extraction accuracy on real program/ToS pages before committing to regex vs LLM; decide whether an LLM dependency is justified.
 
+### Phase 8: SE Ranking Integration (Supplementary SEO / Paid Data)
+
+**Goal**: The researcher sees SE Ranking's organic and paid search estimates for the analyzed domain alongside the TabAPI figures, clearly labeled by source, without any change to the existing report or its credit usage.
+**Depends on**: Phase 1 (cached-store factory); independent of Phases 2–7
+**Requirements**: SERK-01, SERK-02, SERK-03, SERK-04, SERK-05
+**Success Criteria** (what must be TRUE):
+
+  1. Researcher sees organic and paid keyword count, estimated traffic and traffic value (worldwide) from SE Ranking, labeled as SE Ranking estimates distinct from TabAPI
+  2. Researcher sees top paid keywords with CPC, volume, position, ad block (top/bottom), ad title/description/display URL and landing page
+  3. Researcher sees advertiser competitors (domains bidding on overlapping keywords) with common-keyword counts
+  4. Researcher can click "Tải backlink" to load a backlinks summary (backlinks, referring domains, dofollow share, domain inlink rank, top anchors); it is never fetched automatically because it costs ~100 credits
+  5. Without `SE_RANKING_API_KEY`, or when SE Ranking fails or has no data, the section shows a Vietnamese empty/error state and the rest of the report renders; the key never reaches the browser
+  6. Repeated lookups within 24h are served from cache with in-flight dedup
+
+**Plans**: 4 plans
+
+Plans:
+
+- [ ] 08-01-PLAN.md — Types, SE Ranking client with four per-slice cached stores, tests (wave 1)
+- [ ] 08-02-PLAN.md — `GET /api/seranking` (overview/keywords/competitors) and on-demand `GET /api/seranking/backlinks` routes with tests (wave 2)
+- [ ] 08-03-PLAN.md — `SerankingPanel` component with "Tải backlink" on-demand button, fixtures and tests (wave 2)
+- [ ] 08-04-PLAN.md — Wire panel into dashboard, fix affected tests, sanitize `.env.example` (wave 3)
+
+**UI hint**: yes
+**Planning gate**: probed live on 2026-10-22 (see `.planning/research/DOMAIN-CHECK-FRAMEWORK.md` and SE Ranking probe notes): `domain/overview/worldwide`, `domain/keywords?type=adv`, `domain/competitors?type=adv`, `backlinks/summary` return data; `domain/overview/history` returned 400 (parameters unknown); `domain/ads` is thin (empty snippets). Open: credit metering (units_left did not move), rate limits, small-domain coverage, trial expires 2026-11-05. SE Ranking has no creative dates — ad longevity stays with SerpAPI (Phase 6).
+
 ## Progress
 
 **Execution Order:**
@@ -151,6 +180,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 5. Persistence & Domain Profile | 0/TBD | Not started | - |
 | 6. Google Ad Longevity (SerpAPI) | 0/TBD | Not started | - |
 | 7. Affiliate Terms & Unit Economics | 0/TBD | Not started | - |
+| 8. SE Ranking Integration | 0/TBD | Not started | - |
 
 ## Coverage
 
@@ -160,11 +190,12 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | REFS-01, REFS-02, REFS-03, REFS-04, REFS-05 | 2 |
 | ADVR-01, ADVR-02, ADVR-03, ADVR-04, CRTV-01, CRTV-02 | 3 |
 | RPT-01, RPT-02, RPT-03, RPT-04 | 4 |
-| PERS-01, PERS-02, VET-01, VET-02 | 5 |
+| PERS-01, PERS-02, VET-01, VET-02, VET-06, TRST-01, TRST-02 | 5 |
 | ADLG-01, ADLG-02, ADLG-03, ADLG-04 | 6 |
 | AFFL-01, AFFL-02, AFFL-03, ECON-01, ECON-02, ECON-03, VET-03 | 7 |
+| SERK-01, SERK-02, SERK-03, SERK-04, SERK-05 | 8 |
 
-**Coverage:** 32/32 v1 requirements mapped ✓ — no orphans, no duplicates.
+**Coverage:** 40/40 v1 requirements mapped ✓ — no orphans, no duplicates.
 
 ## Notes for Planning
 
@@ -176,7 +207,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 ## Backlog
 
-- **Social ads & reputation (SOCL-01..03)** — Meta, TikTok, Trustpilot/Wayback; deferred until Google flow ships.
+- **Social ads & reputation (SOCL-01..03, TRST-03)** — Meta, TikTok, Wayback/Scamadviser/Reddit, Trustpilot review-level analysis; deferred until Google flow ships. (Trustpilot score + count moved into Phase 5.)
 - **Scoring & ranking (VET-04, VET-05, AFFL-04)** — ARS, AOS ranking of saved domains, network publisher APIs.
 
 ---

@@ -172,6 +172,14 @@ Features users assume exist in a domain report with referral + ad sections. Miss
 - **SpyFu remains Google-Search-only** — search-only scope for the advertisers section is a defensible niche, not a gap.
 - **TabAPI (9 endpoints, verified 2026-10-13):** Traffic (3–12 cr, already integrated), Backlinks (5 cr), Google Search (1 cr), Reverse AdSense (3 cr), WHOIS/RDAP/DNS (1 cr), Web Reader/Screenshot (1 cr). No referrer-traffic or advertiser-library endpoints exist — every "Our Approach" cell above is written against this constraint.
 
+## Addendum (2026-10-14): Affiliate Domain-Vetting Checklist
+
+A user-authored checklist (`Các chỉ số và cách lấy để check domain.md`) proposes additional metrics (domain age, payment gateway, Meta/TikTok ads, ad longevity, EPC/Max CPC, AOS). Full mapping in `DOMAIN-CHECK-FRAMEWORK.md`. Impact on this document:
+
+- **Compatible, new P2 candidates:** Tier-1 geo share and brand/non-brand keyword split (derived from existing data); WHOIS/RDAP domain-age panel (TabAPI, 1 credit); affiliate-parameter detection in the Backlinks sample.
+- **Reinforces existing Anti-Features:** Meta/TikTok coverage and per-advertiser spend remain data-blocked.
+- **Confirms existing P3:** creative first/last-seen dates (the checklist's "winning creatives") remain blocked on persistence or SerpAPI Transparency.
+
 ## Sources
 
 **Official vendor documentation (read in full, HIGH confidence):**

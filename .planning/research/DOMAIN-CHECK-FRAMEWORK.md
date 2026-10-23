@@ -84,3 +84,35 @@ Resulting phases: 5 (persistence + profile), 6 (ad longevity), 7 (affiliate term
 
 ---
 *Framework analysis: 2026-10-14*
+
+## Current coverage (2026-10-23)
+
+Based on code reading, not on UI verification. Status: answered / partial / not.
+
+| # | Metric | Status | Source | Planned phase |
+|---|---|---|---|---|
+| 1 | Domain age / history | not | WHOIS/RDAP | Phase 5 |
+| 2 | Business model | not | manual or page scan | Phase 5/7 (unverified exact phase) |
+| 3 | AOV | not | manual | Phase 7 |
+| 4 | Payment gateway / checkout | not | page scan or manual | Phase 5/7 (unverified exact phase) |
+| 5 | Trust / reviews | not | Trustpilot | Phase 5 |
+| 6 | Monthly visits and trend | answered | TabAPI | Phase 1 era (existing app) |
+| 7 | Traffic source mix | answered | TabAPI | existing app |
+| 8 | Top geos | answered | TabAPI | existing app |
+| 9 | Engagement (bounce, pages/visit, time) | answered | TabAPI | existing app |
+| 10 | Advertiser density | answered | Google Ads Transparency panel (SerpAPI) plus SE Ranking competitors on demand | delivered (300b113, Phase 8) |
+| 11 | Active ad count | answered | Transparency (last shown within 7 days) | delivered (300b113) |
+| 12 | Ad longevity | answered | Transparency (first/last shown, total days) | delivered (300b113) |
+| 13 | Paid keywords and avg CPC | partial | TabAPI "Từ khóa hàng đầu" has CPC but lists top keywords, not paid-only; SE Ranking ad copy section intentionally omits volume/CPC | n/a |
+| 14 | Ad format and landing page | answered | Transparency format mix plus SE Ranking ad copy/landing page | delivered (300b113, Phase 8) |
+| 15 | Payout | not | manual | Phase 7 |
+| 16 | Cookie / attribution | not | manual | Phase 7 |
+| 17 | EPC and CR | not | manual | Phase 7 |
+| 18 | Policy restrictions | not | manual | Phase 7 |
+
+**Total: 9/18 answered (8 fully, 1 partial); 9 not covered.** Recount of the table: answered = rows 6-12 and 14 (8), partial = row 13 (1), not = rows 1-5 and 15-18 (9).
+
+SE Ranking note (supersedes earlier SE Ranking assumptions): the SE Ranking overview panel was removed; ad copy, competitors and backlinks are click-to-load only. TabAPI is the source of truth because SE Ranking numbers disagreed with the Similarweb extension.
+
+---
+*Current coverage added: 2026-10-23*

@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  EMPTY_PROFILE_TTL_MS,
+  MAX_CONCURRENT_SCRAPES,
   TrustpilotApiError,
   clearTrustpilotCache,
   fetchTrustpilotProfile,
@@ -78,7 +80,11 @@ describe("normalizeTrustpilotBody", () => {
     expect(business(withBusiness({ numberOfReviews: 15255.7 })).review_count).toBe(15255);
     expect(business(withBusiness({ numberOfReviews: 0 })).review_count).toBe(0);
     expect(firstReview(withReview({ rating: 9 })).rating).toBe(5);
-    expect(firstReview(withReview({ rating: 0 })).rating).toBe(1);
+    expect(firstReview(withReview({ rating: 0 })).rating).toBeNull();
+    expect(firstReview(withReview({ rating: -2 })).rating).toBeNull();
+    expect(firstReview(withReview({ rating: NaN })).rating).toBeNull();
+    expect(firstReview(withReview({ rating: null })).rating).toBeNull();
+    expect(firstReview(withReview({ rating: 3 })).rating).toBe(3);
     expect(firstReview(withReview({ rating: "x" })).rating).toBeNull();
   });
 
@@ -174,16 +180,12 @@ describe("normalizeTrustpilotBody", () => {
 
   it("ném lỗi khi success khác true hoặc body không phải object", () => {
     expect(() => normalizeTrustpilotBody({ success: false }, NOW)).toThrow(TrustpilotApiError);
-    try {
-      normalizeTrustpilotBody({ success: false }, NOW);
-    } catch (error) {
-      expect(error).toMatchObject({ status: 502, code: "scraper_failed" });
-    }
-    try {
-      normalizeTrustpilotBody("text", NOW);
-    } catch (error) {
-      expect(error).toMatchObject({ status: 502, code: "invalid_response" });
-    }
+    expect(() => normalizeTrustpilotBody({ success: false }, NOW)).toThrowError(
+      expect.objectContaining({ status: 502, code: "scraper_failed" }),
+    );
+    expect(() => normalizeTrustpilotBody("text", NOW)).toThrowError(
+      expect.objectContaining({ status: 502, code: "invalid_response" }),
+    );
     expect(() => normalizeTrustpilotBody(null, NOW)).toThrow(TrustpilotApiError);
   });
 });
@@ -248,15 +250,90 @@ describe("fetchTrustpilotProfile", () => {
     expect(error.message).not.toContain("scraper.test");
   });
 
-  it("ánh xạ body không phải JSON hoặc quá lớn sang invalid_response", async () => {
-    const notJson = vi.fn(async () => new Response("<html>", { status: 200 }));
-    const huge = vi.fn(async () => new Response("x".repeat(1_000_001), { status: 200 }));
-    for (const fetchImpl of [notJson, huge]) {
-      const error = await failureOf(
-        fetchTrustpilotProfile("acme.com", BASE_URL, fetchImpl as unknown as typeof fetch, NOW),
-      );
-      expect(error).toMatchObject({ status: 502, code: "invalid_response" });
-    }
+  it("ánh xạ body không phải JSON sang invalid_response", async () => {
+    const fetchImpl = vi.fn(async () => new Response("<html>", { status: 200 }));
+    const error = await failureOf(
+      fetchTrustpilotProfile("acme.com", BASE_URL, fetchImpl as unknown as typeof fetch, NOW),
+    );
+    expect(error).toMatchObject({ status: 502, code: "invalid_response" });
+  });
+
+  it("từ chối body JSON hợp lệ vượt 1.000.000 byte và hủy luồng đọc", async () => {
+    const cancel = vi.fn();
+    const chunk = new TextEncoder().encode(JSON.stringify({ success: true, pad: "x".repeat(600_000) }));
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        controller.enqueue(chunk);
+      },
+      cancel,
+    });
+    const fetchImpl = vi.fn(async () => new Response(stream, { status: 200 }));
+    const error = await failureOf(
+      fetchTrustpilotProfile("acme.com", BASE_URL, fetchImpl as unknown as typeof fetch, NOW),
+    );
+    expect(error).toMatchObject({ status: 502, code: "response_too_large" });
+    expect(cancel).toHaveBeenCalled();
+  });
+
+  it("tính theo byte chứ không theo ký tự", async () => {
+    const body = JSON.stringify({ success: true, pad: "€".repeat(400_000) });
+    expect(body.length).toBeLessThan(1_000_000);
+    const fetchImpl = vi.fn(async () => new Response(body, { status: 200 }));
+    const error = await failureOf(
+      fetchTrustpilotProfile("acme.com", BASE_URL, fetchImpl as unknown as typeof fetch, NOW),
+    );
+    expect(error).toMatchObject({ status: 502, code: "response_too_large" });
+  });
+
+  it("từ chối theo content-length trước khi đọc body", async () => {
+    const text = vi.fn(async () => "{}");
+    const getReader = vi.fn();
+    const fake = {
+      ok: true,
+      headers: new Headers({ "content-length": "1000001" }),
+      body: { getReader, cancel: vi.fn(async () => undefined) },
+      text,
+    } as unknown as Response;
+    const fetchImpl = vi.fn(async () => fake);
+    const error = await failureOf(
+      fetchTrustpilotProfile("acme.com", BASE_URL, fetchImpl as unknown as typeof fetch, NOW),
+    );
+    expect(error).toMatchObject({ status: 502, code: "response_too_large" });
+    expect(getReader).not.toHaveBeenCalled();
+    expect(text).not.toHaveBeenCalled();
+  });
+
+  it("chấp nhận body ngay dưới ngưỡng", async () => {
+    const pad = "x".repeat(900_000);
+    const fetchImpl = vi.fn(async () => jsonResponse({ ...trustpilotUpstreamFixture, pad }));
+    const result = await fetchTrustpilotProfile(
+      "acme.com",
+      BASE_URL,
+      fetchImpl as unknown as typeof fetch,
+      NOW,
+    );
+    expect(result).toEqual(trustpilotFixture.trustpilot.data);
+  });
+
+  it("dùng text() với kiểm tra byte khi response.body là null", async () => {
+    const make = (text: string) =>
+      ({
+        ok: true,
+        headers: new Headers(),
+        body: null,
+        text: async () => text,
+      }) as unknown as Response;
+
+    const small = vi.fn(async () => make(JSON.stringify(trustpilotUpstreamFixture)));
+    await expect(
+      fetchTrustpilotProfile("acme.com", BASE_URL, small as unknown as typeof fetch, NOW),
+    ).resolves.toEqual(trustpilotFixture.trustpilot.data);
+
+    const big = vi.fn(async () => make(JSON.stringify({ success: true, pad: "€".repeat(400_000) })));
+    const error = await failureOf(
+      fetchTrustpilotProfile("acme.com", BASE_URL, big as unknown as typeof fetch, NOW),
+    );
+    expect(error).toMatchObject({ status: 502, code: "response_too_large" });
   });
 
   it("ánh xạ success false sang scraper_failed với thông báo tiếng Việt", async () => {
@@ -317,5 +394,150 @@ describe("getTrustpilotProfile", () => {
     clearTrustpilotCache();
     await getTrustpilotProfile("acme.com", BASE_URL, impl);
     expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("getTrustpilotProfile hồ sơ rỗng", () => {
+  afterEach(() => vi.useRealTimers());
+
+  const emptyFetch = () => vi.fn(async () => jsonResponse({ success: true, business: {} }));
+
+  it("chỉ cache hồ sơ rỗng trong EMPTY_PROFILE_TTL_MS rồi tải lại", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const fetchImpl = emptyFetch();
+    const impl = fetchImpl as unknown as typeof fetch;
+
+    const first = await getTrustpilotProfile("acme.com", BASE_URL, impl);
+    expect(first.profile).toBeNull();
+    await getTrustpilotProfile("acme.com", BASE_URL, impl);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+
+    vi.setSystemTime(new Date(NOW.getTime() + EMPTY_PROFILE_TTL_MS + 1));
+    await getTrustpilotProfile("acme.com", BASE_URL, impl);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("vẫn cache dài hạn hồ sơ có dữ liệu", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const fetchImpl = vi.fn(async () => jsonResponse(trustpilotUpstreamFixture));
+    const impl = fetchImpl as unknown as typeof fetch;
+
+    await getTrustpilotProfile("acme.com", BASE_URL, impl);
+    vi.setSystemTime(new Date(NOW.getTime() + EMPTY_PROFILE_TTL_MS * 2));
+    await getTrustpilotProfile("acme.com", BASE_URL, impl);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("chia sẻ kết quả rỗng cho các lệnh gọi song song cùng tên miền", async () => {
+    const fetchImpl = emptyFetch();
+    const impl = fetchImpl as unknown as typeof fetch;
+    const [first, second] = await Promise.all([
+      getTrustpilotProfile("acme.com", BASE_URL, impl),
+      getTrustpilotProfile("acme.com", BASE_URL, impl),
+    ]);
+    expect(first.profile).toBeNull();
+    expect(second.profile).toBeNull();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("getTrustpilotProfile giới hạn đồng thời", () => {
+  function deferredFetch() {
+    const resolvers: Array<(response: Response) => void> = [];
+    const rejecters: Array<(reason: unknown) => void> = [];
+    const fetchImpl = vi.fn(
+      () =>
+        new Promise<Response>((resolve, reject) => {
+          resolvers.push(resolve);
+          rejecters.push(reject);
+        }),
+    );
+    return { fetchImpl, resolvers, rejecters, impl: fetchImpl as unknown as typeof fetch };
+  }
+
+  it("từ chối lệnh thứ ba bằng 429 scraper_busy mà không gọi upstream", async () => {
+    expect(MAX_CONCURRENT_SCRAPES).toBe(2);
+    const { fetchImpl, resolvers, impl } = deferredFetch();
+    const first = getTrustpilotProfile("a.com", BASE_URL, impl);
+    const second = getTrustpilotProfile("b.com", BASE_URL, impl);
+    const error = await failureOf(getTrustpilotProfile("c.com", BASE_URL, impl));
+    expect(error).toMatchObject({ status: 429, code: "scraper_busy" });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+
+    resolvers.forEach((resolve) => resolve(jsonResponse(trustpilotUpstreamFixture)));
+    await Promise.all([first, second]);
+  });
+
+  it("giải phóng slot khi thành công và khi thất bại", async () => {
+    const { fetchImpl, resolvers, rejecters, impl } = deferredFetch();
+    const first = getTrustpilotProfile("a.com", BASE_URL, impl);
+    const second = getTrustpilotProfile("b.com", BASE_URL, impl);
+    await failureOf(getTrustpilotProfile("c.com", BASE_URL, impl));
+
+    resolvers[0](jsonResponse(trustpilotUpstreamFixture));
+    await first;
+    const third = getTrustpilotProfile("c.com", BASE_URL, impl);
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+
+    rejecters[1](new TypeError("down"));
+    await failureOf(second);
+    const fourth = getTrustpilotProfile("d.com", BASE_URL, impl);
+    expect(fetchImpl).toHaveBeenCalledTimes(4);
+
+    resolvers[2](jsonResponse(trustpilotUpstreamFixture));
+    resolvers[3](jsonResponse(trustpilotUpstreamFixture));
+    await Promise.all([third, fourth]);
+  });
+
+  it("giải phóng slot khi timeout", async () => {
+    const { fetchImpl, rejecters, impl } = deferredFetch();
+    const first = getTrustpilotProfile("a.com", BASE_URL, impl);
+    const second = getTrustpilotProfile("b.com", BASE_URL, impl);
+    rejecters[0](new DOMException("x", "TimeoutError"));
+    expect(await failureOf(first)).toMatchObject({ code: "scraper_timeout" });
+
+    const third = getTrustpilotProfile("c.com", BASE_URL, impl);
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    rejecters[1](new TypeError("down"));
+    rejecters[2](new TypeError("down"));
+    await failureOf(second);
+    await failureOf(third);
+  });
+
+  it("hai lệnh song song cùng tên miền chỉ gọi fetch một lần và dùng một slot", async () => {
+    const { fetchImpl, resolvers, impl } = deferredFetch();
+    const sameA = getTrustpilotProfile("a.com", BASE_URL, impl);
+    const sameB = getTrustpilotProfile("a.com", BASE_URL, impl);
+    const other = getTrustpilotProfile("b.com", BASE_URL, impl);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+
+    resolvers.forEach((resolve) => resolve(jsonResponse(trustpilotUpstreamFixture)));
+    await Promise.all([sameA, sameB, other]);
+  });
+
+  it("không cache lỗi busy nên lần sau gọi lại được upstream", async () => {
+    const { resolvers, impl } = deferredFetch();
+    const first = getTrustpilotProfile("a.com", BASE_URL, impl);
+    const second = getTrustpilotProfile("b.com", BASE_URL, impl);
+    await failureOf(getTrustpilotProfile("c.com", BASE_URL, impl));
+    resolvers.forEach((resolve) => resolve(jsonResponse(trustpilotUpstreamFixture)));
+    await Promise.all([first, second]);
+
+    const ok = vi.fn(async () => jsonResponse(trustpilotUpstreamFixture));
+    await getTrustpilotProfile("c.com", BASE_URL, ok as unknown as typeof fetch);
+    expect(ok).toHaveBeenCalledTimes(1);
+  });
+
+  it("clearTrustpilotCache đặt lại bộ đếm slot", async () => {
+    const { impl } = deferredFetch();
+    void getTrustpilotProfile("a.com", BASE_URL, impl).catch(() => undefined);
+    void getTrustpilotProfile("b.com", BASE_URL, impl).catch(() => undefined);
+    clearTrustpilotCache();
+
+    const ok = vi.fn(async () => jsonResponse(trustpilotUpstreamFixture));
+    await getTrustpilotProfile("c.com", BASE_URL, ok as unknown as typeof fetch);
+    expect(ok).toHaveBeenCalledTimes(1);
   });
 });

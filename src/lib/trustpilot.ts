@@ -10,7 +10,10 @@ import type {
 export const TRUSTPILOT_MAX_PAGES = 1;
 export const TRUSTPILOT_REVIEW_LIMIT = 5;
 export const TRUSTPILOT_TIMEOUT_MS = 45_000;
-const MAX_RESPONSE_CHARS = 1_000_000;
+export const EMPTY_PROFILE_TTL_MS = 10 * 60 * 1000;
+export const MAX_CONCURRENT_SCRAPES = 2;
+const MAX_RESPONSE_BYTES = 1_000_000;
+const MAX_EMPTY_ENTRIES = 100;
 const MAX_URL_CHARS = 500;
 const MAX_CATEGORIES = 5;
 
@@ -36,6 +39,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function clampNumber(value: unknown, min: number, max: number): number | null {
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
   return Math.min(max, Math.max(min, value));
+}
+
+function reviewRating(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 1) return null;
+  return Math.min(5, value);
 }
 
 function reviewCount(value: unknown): number | null {
@@ -100,7 +108,7 @@ function normalizeReview(raw: Record<string, unknown>): TrustpilotReview {
     body: capString(raw.body, 2000),
     date: normalizeDate(raw.date),
     location: capString(raw.location, 20),
-    rating: clampNumber(raw.rating, 1, 5),
+    rating: reviewRating(raw.rating),
   };
 }
 
@@ -161,6 +169,46 @@ function isTimeout(error: unknown): boolean {
   );
 }
 
+function responseTooLarge(): TrustpilotApiError {
+  return new TrustpilotApiError(502, "response_too_large", "Dữ liệu Trustpilot trả về quá lớn.");
+}
+
+async function readBodyText(response: Response): Promise<string> {
+  const declared = Number(response.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > MAX_RESPONSE_BYTES) {
+    await response.body?.cancel().catch(() => undefined);
+    throw responseTooLarge();
+  }
+
+  if (!response.body) {
+    const text = await response.text();
+    if (new TextEncoder().encode(text).length > MAX_RESPONSE_BYTES) throw responseTooLarge();
+    return text;
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_RESPONSE_BYTES) {
+      await reader.cancel().catch(() => undefined);
+      throw responseTooLarge();
+    }
+    chunks.push(value);
+  }
+
+  const merged = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder("utf-8").decode(merged);
+}
+
 export async function fetchTrustpilotProfile(
   domain: string,
   baseUrl: string,
@@ -211,8 +259,9 @@ export async function fetchTrustpilotProfile(
 
   let text: string;
   try {
-    text = await response.text();
+    text = await readBodyText(response);
   } catch (error) {
+    if (error instanceof TrustpilotApiError) throw error;
     if (isTimeout(error)) {
       throw new TrustpilotApiError(
         504,
@@ -222,7 +271,6 @@ export async function fetchTrustpilotProfile(
     }
     throw invalidResponse();
   }
-  if (text.length > MAX_RESPONSE_CHARS) throw invalidResponse();
 
   let body: unknown;
   try {
@@ -237,16 +285,66 @@ export async function fetchTrustpilotProfile(
 }
 
 const profileStore = createCachedStore<TrustpilotResult>();
+const emptyResults = new Map<string, { result: TrustpilotResult; expiresAt: number }>();
+let activeScrapes = 0;
 
-export function getTrustpilotProfile(
+class EmptyProfileSignal extends Error {
+  constructor(public readonly result: TrustpilotResult) {
+    super("empty_profile");
+  }
+}
+
+async function loadProfile(
+  domain: string,
+  baseUrl: string,
+  fetchImpl: typeof fetch,
+): Promise<TrustpilotResult> {
+  if (activeScrapes >= MAX_CONCURRENT_SCRAPES) {
+    throw new TrustpilotApiError(
+      429,
+      "scraper_busy",
+      "Dịch vụ lấy đánh giá đang bận, vui lòng thử lại sau ít phút.",
+    );
+  }
+  activeScrapes += 1;
+  try {
+    const result = await fetchTrustpilotProfile(domain, baseUrl, fetchImpl);
+    if (result.profile === null) throw new EmptyProfileSignal(result);
+    return result;
+  } finally {
+    activeScrapes = Math.max(0, activeScrapes - 1);
+  }
+}
+
+export async function getTrustpilotProfile(
   rawDomain: string,
   baseUrl: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<TrustpilotResult> {
   const domain = rawDomain.toLowerCase();
-  return profileStore.get(domain, () => fetchTrustpilotProfile(domain, baseUrl, fetchImpl));
+  const cachedEmpty = emptyResults.get(domain);
+  if (cachedEmpty) {
+    if (cachedEmpty.expiresAt > Date.now()) return cachedEmpty.result;
+    emptyResults.delete(domain);
+  }
+
+  try {
+    return await profileStore.get(domain, () => loadProfile(domain, baseUrl, fetchImpl));
+  } catch (error) {
+    if (error instanceof EmptyProfileSignal) {
+      if (emptyResults.size >= MAX_EMPTY_ENTRIES) {
+        const oldest = emptyResults.keys().next().value as string | undefined;
+        if (oldest !== undefined) emptyResults.delete(oldest);
+      }
+      emptyResults.set(domain, { result: error.result, expiresAt: Date.now() + EMPTY_PROFILE_TTL_MS });
+      return error.result;
+    }
+    throw error;
+  }
 }
 
 export function clearTrustpilotCache(): void {
   profileStore.clear();
+  emptyResults.clear();
+  activeScrapes = 0;
 }

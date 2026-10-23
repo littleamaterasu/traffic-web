@@ -39,6 +39,13 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  try {
+    const parsed = new URL(baseUrl);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("scheme");
+  } catch {
+    return errorResponse(500, "invalid_scraper_url", "TRUSTPILOT_SCRAPER_URL không hợp lệ.");
+  }
+
   let trustpilot: TrustpilotSlice<TrustpilotResult>;
   try {
     trustpilot = { data: await getTrustpilotProfile(domain, baseUrl), error: null };

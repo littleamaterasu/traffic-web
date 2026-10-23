@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { TrustpilotPanel } from "./trustpilot-panel";
 import { trustpilotEmptyFixture, trustpilotFixture } from "@/test/trustpilot-fixture";
@@ -151,14 +151,45 @@ describe("TrustpilotPanel", () => {
     expect(screen.queryByRole("img", { name: "Acme" })).not.toBeInTheDocument();
   });
 
-  it("hiện thông báo chưa có hồ sơ và không còn nút tải", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(okResponse(trustpilotEmptyFixture)));
+  it("hiện thông báo chưa có hồ sơ cùng nút Thử lại và tải lại khi bấm", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(okResponse(trustpilotEmptyFixture));
+    vi.stubGlobal("fetch", fetchMock);
     render(<TrustpilotPanel domain="acme.com" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Tải đánh giá Trustpilot" }));
 
     expect(await screen.findByText("Chưa có hồ sơ Trustpilot cho tên miền này.")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Tải đánh giá Trustpilot|Thử lại/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Tải đánh giá Trustpilot" })).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Thử lại" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText("Chưa có hồ sơ Trustpilot cho tên miền này.")).toBeInTheDocument();
+  });
+
+  it("sao tiêu đề dùng trust_score khi stars bằng 0", async () => {
+    await loadReady(withBusiness({ stars: 0, trust_score: 4.9 }));
+
+    const boxes = screen.getByRole("img", { name: "Điểm 4,9 trên 5" });
+    const fills = Array.from(boxes.children).map((box) => box.getAttribute("data-fill"));
+    expect(fills).toEqual(["1", "1", "1", "1", "1"]);
+  });
+
+  it("không hiện sao tiêu đề khi cả stars và trust_score đều không hợp lệ", async () => {
+    await loadReady(withBusiness({ stars: 0, trust_score: null }));
+
+    expect(screen.queryByRole("img", { name: /^Điểm/ })).not.toBeInTheDocument();
+  });
+
+  it("không hiện sao cho đánh giá có rating null", async () => {
+    const clone = cloneFixture();
+    clone.trustpilot.data!.profile!.reviews[0].rating = null;
+    await loadReady(clone);
+
+    const reviews = within(screen.getByRole("list", { name: "Đánh giá gần nhất" })).getAllByRole("listitem");
+    expect(within(reviews[0]).queryByRole("img")).not.toBeInTheDocument();
+    expect(within(reviews[1]).getByRole("img")).toBeInTheDocument();
   });
 
   it("hiện lỗi HTTP bằng role alert và cho thử lại thành công", async () => {

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
-import { clearTrustpilotCache, getTrustpilotProfile } from "@/lib/trustpilot";
+import { TrustpilotApiError, clearTrustpilotCache, getTrustpilotProfile } from "@/lib/trustpilot";
 import { trustpilotFixture, trustpilotUpstreamFixture } from "@/test/trustpilot-fixture";
 import { GET } from "./route";
 
@@ -80,6 +80,33 @@ describe("GET /api/trustpilot", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("trả 500 invalid_scraper_url khi URL cấu hình không hợp lệ và không gọi upstream", async () => {
+    const fetchMock = jsonFetch({});
+    vi.stubGlobal("fetch", fetchMock);
+
+    for (const value of ["not a url", "ftp://scraper.test"]) {
+      vi.stubEnv("TRUSTPILOT_SCRAPER_URL", value);
+      const response = await GET(request("acme.com"));
+      expect(response.status).toBe(500);
+      await expect(response.json()).resolves.toMatchObject({ error: { code: "invalid_scraper_url" } });
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("giữ lỗi scraper_busy ở slice 200", async () => {
+    vi.stubEnv("TRUSTPILOT_SCRAPER_URL", SCRAPER_URL);
+    vi.mocked(getTrustpilotProfile).mockRejectedValueOnce(
+      new TrustpilotApiError(429, "scraper_busy", "Dịch vụ lấy đánh giá đang bận, vui lòng thử lại sau ít phút."),
+    );
+
+    const response = await GET(request("acme.com"));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.trustpilot.data).toBeNull();
+    expect(body.trustpilot.error.code).toBe("scraper_busy");
+  });
+
   it("ưu tiên invalid_domain hơn missing_scraper_url", async () => {
     vi.stubEnv("TRUSTPILOT_SCRAPER_URL", "");
 
@@ -113,9 +140,7 @@ describe("GET /api/trustpilot", () => {
 
   it("thay lỗi không xác định bằng thông điệp chung và không lộ chi tiết nội bộ", async () => {
     vi.stubEnv("TRUSTPILOT_SCRAPER_URL", SCRAPER_URL);
-    vi.mocked(getTrustpilotProfile).mockImplementationOnce(() => {
-      throw new Error("SENTINEL-INTERNAL");
-    });
+    vi.mocked(getTrustpilotProfile).mockRejectedValueOnce(new Error("SENTINEL-INTERNAL"));
 
     const response = await GET(request("acme.com"));
     const text = await response.text();

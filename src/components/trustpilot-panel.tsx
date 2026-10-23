@@ -136,8 +136,8 @@ function BusinessHeader({
   business: TrustpilotBusiness;
   trustpilotUrl: string | null;
 }) {
-  const stars = computeStarFills(business.stars);
-  const fills = stars.length ? stars : computeStarFills(business.trust_score);
+  const fills = computeStarFills(business.stars, business.trust_score);
+  const shownScore = business.stars && business.stars > 0 ? business.stars : business.trust_score;
   const logo = safeHref(business.logo_url);
   const profileHref = safeHref(trustpilotUrl);
   const websiteHref = safeHref(business.website);
@@ -157,7 +157,7 @@ function BusinessHeader({
             <p className="text-sm font-black">
               TrustScore <span className="text-xl">{formatScore(business.trust_score)}</span>
             </p>
-            <StarBoxes fills={fills} label={`Điểm ${formatScore(business.stars ?? business.trust_score)} trên 5`} size={24} />
+            <StarBoxes fills={fills} label={`Điểm ${formatScore(shownScore)} trên 5`} size={24} />
             <p className="text-sm font-bold">{formatNumber(business.review_count)} đánh giá</p>
           </div>
           {business.claimed_since ? (
@@ -189,7 +189,9 @@ function ReviewCard({ review }: { review: TrustpilotReview }) {
   const fills = computeStarFills(review.rating);
   return (
     <li className="space-y-2 border-2 border-[#171710] bg-[#fffdf4] p-3">
-      <StarBoxes fills={fills} label={`Đánh giá ${formatScore(review.rating)} trên 5`} size={20} />
+      {fills.length ? (
+        <StarBoxes fills={fills} label={`Đánh giá ${formatScore(review.rating)} trên 5`} size={20} />
+      ) : null}
       {review.heading ? <h4 className="break-words text-sm font-black">{review.heading}</h4> : null}
       {review.body ? <p className="break-words text-sm font-semibold leading-relaxed">{review.body}</p> : null}
       <p className="break-words text-xs font-bold text-[#5e5b4d]">
@@ -317,10 +319,10 @@ export function TrustpilotPanel({ domain }: { domain: string }) {
               </div>
             )
           ) : null}
-          {view.phase !== "ready" ? (
+          {view.phase !== "ready" || !view.result.profile ? (
             <div className="mt-3">
               <button type="button" onClick={() => void load()} disabled={view.phase === "loading"} className={buttonClass}>
-                {view.phase === "error" ? "Thử lại" : "Tải đánh giá Trustpilot"}
+                {view.phase === "error" || view.phase === "ready" ? "Thử lại" : "Tải đánh giá Trustpilot"}
               </button>
             </div>
           ) : null}

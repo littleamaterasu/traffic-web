@@ -20,6 +20,7 @@ Answer the checklist question "tuổi thọ & lịch sử domain": how old is th
 - Current record: loads automatically on mount (1 credit, cached 24h). History: loads ONLY on explicit click ("Tải lịch sử domain"), idle -> loading -> ready/error with "Thử lại", hidden after success, reset on domain change — same pattern as the SE Ranking on-demand sections in `src/components/seranking-panel.tsx`.
 - Tests co-located, Vietnamese descriptions, injected fetch only (no network, no real keys), typed fixtures in `src/test/whois-fixture.ts`.
 - `.env.example` already contains `WHOIS_API_KEY` as an empty placeholder — keep it empty.
+- Registrant values never exposed to the browser; history exposes only a privacy state (private/public) event on known-state transitions; registrar compared case/punctuation-insensitively; expiry renewals not counted (quick 261023-fs0).
 
 ### Upstream APIs (verified live 2026-10-23, trial key)
 - Current record: `GET https://www.whoisxmlapi.com/whoisserver/WhoisService?apiKey=<key>&domainName=<d>&outputFormat=JSON` → `WhoisRecord` with `createdDate`, `updatedDate`, `expiresDate` (ISO strings, top level or under `registryData`), `estimatedDomainAge` (days), `registrarName`, `status` (space-separated string), `nameServers.hostNames[]`, `registrant` (privacy services show organization like "Domains By Proxy, LLC" / redacted). 1 credit. Example (public domain): created 2017-01-11, estimatedDomainAge 3571 days, registrar GoDaddy.com, LLC.

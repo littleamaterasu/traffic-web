@@ -86,6 +86,7 @@ A marketing researcher enters a domain and receives one readable report that exp
 | Injectable `now` clock seam in the cache factory (Phase 1) | TTL testability without fake timers | ✓ Decided — GRND-02 shipped |
 | Panel primitives extracted verbatim; PANEL_INFO/SOURCE_LABELS stay consumer-owned (Phase 1) | D-01/D-02: shared artifact is the component + type; content-as-data stays with its consumer | ✓ Decided — GRND-01 shipped |
 | Drop SE Ranking ad-keywords panel (2026-10-23) | volume/CPC numbers disagree with TabAPI, which matches the user's Similarweb extension; TabAPI is the source of truth for keyword metrics | ✓ Decided |
+| Drop SE Ranking overview panel; restore ad-copy panel on demand without volume/CPC (2026-10-23) | Overview overlaps TabAPI with disagreeing numbers; ad copy/landing page has no TabAPI equivalent, numbers withheld | ✓ Decided |
 | SE Ranking competitors on demand (2026-10-23) | Loads only on explicit click like backlinks to save credits | ✓ Decided |
 
 ## Evolution

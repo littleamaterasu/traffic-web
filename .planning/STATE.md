@@ -130,6 +130,7 @@ Items acknowledged and deferred at milestone close, most recent first:
 |---|-------------|------|--------|-----------|
 | 261023-ddc | Remove SE Ranking ad-keywords slice (SERK-02 dropped) | 2026-10-23 | b4c68bb | [261023-ddc-remove-se-ranking-ad-keywords-slice-and-](./quick/261023-ddc-remove-se-ranking-ad-keywords-slice-and-/) |
 | 261023-djq | SE Ranking competitors load on demand via button | 2026-10-23 | 17cc39a | [261023-djq-se-ranking-competitors-on-demand-button](./quick/261023-djq-se-ranking-competitors-on-demand-button/) |
+| 261023-duc | SE Ranking: remove overview panel (SERK-01 dropped), re-add on-demand ad copy without volume/CPC (SERK-02) | 2026-10-23 | 4b1198a | [261023-duc-se-ranking-remove-overview-panel-re-add-](./quick/261023-duc-se-ranking-remove-overview-panel-re-add-/) |
 
 ## Session Continuity
 

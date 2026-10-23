@@ -18,7 +18,7 @@ A brownfield extension of the working TabAPI-backed traffic dashboard. Four phas
 - [ ] **Phase 5: Persistence & Domain Profile** - Local DB for snapshots and saved inputs, business-sustainability block (WHOIS age + volatility, Trustpilot score/reviews), zero-credit derived callouts (Tier-1 share, brand/non-brand keywords)
 - [ ] **Phase 6: Google Ad Longevity (SerpAPI)** - Ads Transparency creatives with first/last shown dates, Winning Ad Ratio, ASI, graceful fallback without `SERPAPI_KEY`
 - [ ] **Phase 7: Affiliate Terms & Unit Economics** - Three-tier affiliate data (auto / suggested / manual) and Projected EPC, Max CPC, Arbitrage Spread
-- [ ] **Phase 8: SE Ranking Integration** - Supplementary organic/paid estimates, advertiser competitors and backlinks summary from SE Ranking Data API, clearly source-labeled
+- [ ] **Phase 8: SE Ranking Integration** - On-demand ad copy, advertiser competitors and backlinks summary from SE Ranking Data API, clearly source-labeled (overview dropped)
 
 ## Phase Details
 
@@ -142,12 +142,12 @@ Plans:
 
 ### Phase 8: SE Ranking Integration (Supplementary SEO / Paid Data)
 
-**Goal**: The researcher sees SE Ranking's organic and paid search estimates for the analyzed domain alongside the TabAPI figures, clearly labeled by source, without any change to the existing report or its credit usage.
+**Goal**: The researcher can load SE Ranking ad copy, advertiser competitors and a backlinks summary for the analyzed domain on demand, clearly labeled by source, without any change to the existing report or its credit usage. TabAPI stays the source of truth for numbers.
 **Depends on**: Phase 1 (cached-store factory); independent of Phases 2–7
-**Requirements**: SERK-01, SERK-03, SERK-04, SERK-05
+**Requirements**: SERK-02, SERK-03, SERK-04, SERK-05
 **Success Criteria** (what must be TRUE):
 
-  1. Researcher sees organic and paid keyword count, estimated traffic and traffic value (worldwide) from SE Ranking, labeled as SE Ranking estimates distinct from TabAPI
+  1. Researcher can click "Tải mẫu quảng cáo" to load SE Ranking ad copy (title, description, display URL) and landing pages for paid keywords, with no volume or CPC shown; never fetched automatically because it costs SE Ranking credits
   2. Researcher can click "Tải đối thủ quảng cáo" to load advertiser competitors (domains bidding on overlapping keywords) with common-keyword counts; never fetched automatically because it costs SE Ranking credits
   3. Researcher can click "Tải backlink" to load a backlinks summary (backlinks, referring domains, dofollow share, domain inlink rank, top anchors); it is never fetched automatically because it costs ~100 credits
   4. Without `SE_RANKING_API_KEY`, or when SE Ranking fails or has no data, the section shows a Vietnamese empty/error state and the rest of the report renders; the key never reaches the browser
@@ -158,7 +158,7 @@ Plans:
 Plans:
 
 - [x] 08-01-PLAN.md — Types, SE Ranking client with four per-slice cached stores, tests (wave 1)
-- [x] 08-02-PLAN.md — `GET /api/seranking` (overview; competitors later moved to on-demand `/api/seranking/competitors`) and on-demand `GET /api/seranking/backlinks` routes with tests (wave 2)
+- [x] 08-02-PLAN.md — SE Ranking routes with tests (wave 2); the default `/api/seranking` overview route was removed 2026-10-23, leaving on-demand `/api/seranking/ads`, `/api/seranking/competitors` and `/api/seranking/backlinks`
 - [x] 08-03-PLAN.md — `SerankingPanel` component with "Tải backlink" on-demand button, fixtures and tests (wave 2)
 - [x] 08-04-PLAN.md — Wire panel into dashboard, fix affected tests, sanitize `.env.example` (wave 3)
 
@@ -192,7 +192,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | PERS-01, PERS-02, VET-01, VET-02, VET-06, TRST-01, TRST-02 | 5 |
 | ADLG-01, ADLG-02, ADLG-03, ADLG-04 | 6 |
 | AFFL-01, AFFL-02, AFFL-03, ECON-01, ECON-02, ECON-03, VET-03 | 7 |
-| SERK-01, SERK-03, SERK-04, SERK-05 | 8 |
+| SERK-02, SERK-03, SERK-04, SERK-05 | 8 |
 
 **Coverage:** 39/39 v1 requirements mapped ✓ — no orphans, no duplicates.
 

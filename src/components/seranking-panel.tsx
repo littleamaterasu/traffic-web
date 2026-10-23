@@ -8,6 +8,7 @@ import type {
   SeRankingBacklinks,
   SeRankingBacklinksResponse,
   SeRankingCompetitor,
+  SeRankingCompetitorsResponse,
   SeRankingOverview,
   SeRankingResponse,
   SeRankingSlice,
@@ -42,7 +43,7 @@ const SERANKING_INFO = {
       { label: "Mức liên quan", meaning: "Điểm domain_relevance đo mức độ liên quan của đối thủ với tên miền." },
       { label: "Traffic", meaning: "Traffic ước tính của đối thủ đến từ nhóm từ khóa chung." },
     ],
-    note: "Danh sách đối thủ là ước tính của SE Ranking, có thể khác với các nguồn dữ liệu khác và thay đổi theo thời gian.",
+    note: "Mỗi lần tải danh sách đối thủ tốn credits của tài khoản SE Ranking nên nội dung chỉ được tải khi bấm nút. Danh sách là ước tính của SE Ranking, có thể khác với các nguồn dữ liệu khác và thay đổi theo thời gian.",
   },
   backlinks: {
     summary:
@@ -87,9 +88,14 @@ function isSeRankingResponse(body: unknown): body is SeRankingResponse {
   return (
     typeof candidate.domain === "string" &&
     typeof candidate.source === "string" &&
-    isSliceShape(candidate.overview) &&
-    isSliceShape(candidate.competitors)
+    isSliceShape(candidate.overview)
   );
+}
+
+function isSeRankingCompetitorsResponse(body: unknown): body is SeRankingCompetitorsResponse {
+  if (typeof body !== "object" || body === null) return false;
+  const candidate = body as Record<string, unknown>;
+  return typeof candidate.domain === "string" && isSliceShape(candidate.competitors);
 }
 
 function isSeRankingBacklinksResponse(body: unknown): body is SeRankingBacklinksResponse {
@@ -175,45 +181,119 @@ function OverviewPanel({ slice }: { slice: SeRankingSlice<SeRankingOverview> }) 
   );
 }
 
-function CompetitorsPanel({ slice }: { slice: SeRankingSlice<SeRankingCompetitor[]> }) {
-  const competitors = slice.data ?? [];
+type CompetitorsState =
+  | { requestedDomain: string | null; phase: "idle" }
+  | { requestedDomain: string | null; phase: "loading" }
+  | { requestedDomain: string | null; phase: "error"; message: string }
+  | { requestedDomain: string | null; phase: "ready"; slice: SeRankingSlice<SeRankingCompetitor[]> };
+
+const IDLE_COMPETITORS_STATE: CompetitorsState = { requestedDomain: null, phase: "idle" };
+
+function CompetitorsPanel({ domain }: { domain: string }) {
+  const [state, setState] = useState<CompetitorsState>(IDLE_COMPETITORS_STATE);
+
+  async function load() {
+    setState({ requestedDomain: domain, phase: "loading" });
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(`/api/seranking/competitors?domain=${encodeURIComponent(domain)}`, {
+        headers: NGROK_HEADERS,
+        signal: controller.signal,
+      });
+      let body: unknown = null;
+      try {
+        body = await response.json();
+      } catch {
+        body = null;
+      }
+      if (!response.ok) {
+        setState({ requestedDomain: domain, phase: "error", message: readErrorMessage(body, FALLBACK_ERROR_MESSAGE) });
+        return;
+      }
+      if (!isSeRankingCompetitorsResponse(body)) {
+        setState({ requestedDomain: domain, phase: "error", message: FALLBACK_ERROR_MESSAGE });
+        return;
+      }
+      if (body.competitors.error) {
+        setState({ requestedDomain: domain, phase: "error", message: body.competitors.error.message });
+        return;
+      }
+      setState({ requestedDomain: domain, phase: "ready", slice: body.competitors });
+    } catch (cause) {
+      setState({
+        requestedDomain: domain,
+        phase: "error",
+        message: isAbortError(cause) ? TIMEOUT_MESSAGE : FALLBACK_ERROR_MESSAGE,
+      });
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }
+
+  const view = state.requestedDomain === domain ? state : IDLE_COMPETITORS_STATE;
+  const competitors = view.phase === "ready" ? (view.slice.data ?? []) : [];
 
   return (
     <Panel title="Đối thủ quảng cáo" badge="Nguồn: SE Ranking" info={SERANKING_INFO.competitors}>
-      {slice.error ? (
-        <SliceState message={slice.error.message} />
-      ) : competitors.length ? (
-        <div className="responsive-table-wrap p-4 sm:p-5">
-          <table className="responsive-table border-2 border-[#171710] text-sm">
-            <thead>
-              <tr className="border-b-2 border-[#171710] bg-[#ffdb1f] text-left">
-                <th scope="col" className="px-3 py-2 font-black uppercase">Tên miền</th>
-                <th scope="col" className="px-3 py-2 font-black uppercase">Từ khóa chung</th>
-                <th scope="col" className="px-3 py-2 font-black uppercase">Mức liên quan</th>
-                <th scope="col" className="px-3 py-2 font-black uppercase">Traffic</th>
-              </tr>
-            </thead>
-            <tbody>
-              {competitors.map((competitor, index) => (
-                <tr key={`${index}-${competitor.domain ?? ""}`} className="border-b-2 border-[#171710]/20">
-                  <td data-label="Tên miền" className="px-3 py-2 font-black">{competitor.domain ?? "—"}</td>
-                  <td data-label="Từ khóa chung" className="px-3 py-2 font-mono font-black">
-                    {formatNumber(competitor.common_keywords)}
-                  </td>
-                  <td data-label="Mức liên quan" className="px-3 py-2 font-mono font-black">
-                    {formatNumber(competitor.domain_relevance)}
-                  </td>
-                  <td data-label="Traffic" className="px-3 py-2 font-mono font-black">
-                    {formatNumber(competitor.traffic_sum)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <EmptyCell>Chưa phát hiện đối thủ quảng cáo nào cho tên miền này.</EmptyCell>
-      )}
+      <div className="p-4 sm:p-5">
+        <p className="text-xs font-bold leading-relaxed text-[#5e5b4d]">
+          Danh sách đối thủ quảng cáo do SE Ranking cung cấp; mỗi lần tải tốn credits của tài khoản SE Ranking,
+          vì vậy chỉ tải khi bạn cần xem số liệu này.
+        </p>
+        {view.phase === "error" ? (
+          <p role="alert" className="mt-3 border-2 border-[#171710] bg-[#ffb3c7] px-3 py-2 text-sm font-black">
+            {view.message}
+          </p>
+        ) : null}
+        {view.phase === "loading" ? (
+          <p role="status" className="mt-3 text-sm font-black uppercase">
+            Đang tải danh sách đối thủ từ SE Ranking…
+          </p>
+        ) : null}
+        {view.phase === "ready" ? (
+          competitors.length ? (
+            <div className="responsive-table-wrap mt-3">
+              <table className="responsive-table border-2 border-[#171710] text-sm">
+                <thead>
+                  <tr className="border-b-2 border-[#171710] bg-[#ffdb1f] text-left">
+                    <th scope="col" className="px-3 py-2 font-black uppercase">Tên miền</th>
+                    <th scope="col" className="px-3 py-2 font-black uppercase">Từ khóa chung</th>
+                    <th scope="col" className="px-3 py-2 font-black uppercase">Mức liên quan</th>
+                    <th scope="col" className="px-3 py-2 font-black uppercase">Traffic</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {competitors.map((competitor, index) => (
+                    <tr key={`${index}-${competitor.domain ?? ""}`} className="border-b-2 border-[#171710]/20">
+                      <td data-label="Tên miền" className="px-3 py-2 font-black">{competitor.domain ?? "—"}</td>
+                      <td data-label="Từ khóa chung" className="px-3 py-2 font-mono font-black">
+                        {formatNumber(competitor.common_keywords)}
+                      </td>
+                      <td data-label="Mức liên quan" className="px-3 py-2 font-mono font-black">
+                        {formatNumber(competitor.domain_relevance)}
+                      </td>
+                      <td data-label="Traffic" className="px-3 py-2 font-mono font-black">
+                        {formatNumber(competitor.traffic_sum)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <EmptyCell>Chưa phát hiện đối thủ quảng cáo nào cho tên miền này.</EmptyCell>
+          )
+        ) : null}
+        {view.phase !== "ready" ? (
+          <div className="mt-3">
+            <button type="button" onClick={() => void load()} disabled={view.phase === "loading"} className={buttonClass}>
+              {view.phase === "error" ? "Thử lại" : "Tải đối thủ quảng cáo"}
+            </button>
+          </div>
+        ) : null}
+      </div>
     </Panel>
   );
 }
@@ -421,7 +501,7 @@ export function SerankingPanel({ domain }: { domain: string }) {
       ) : (
         <>
           <OverviewPanel slice={view.data.overview} />
-          <CompetitorsPanel slice={view.data.competitors} />
+          <CompetitorsPanel domain={domain} />
           <BacklinksPanel domain={domain} />
         </>
       )}

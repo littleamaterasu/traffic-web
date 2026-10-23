@@ -240,7 +240,7 @@ describe("WhoisPanel", () => {
     expect(container.querySelector("img")).toBeNull();
   });
 
-  it("huỷ yêu cầu lịch sử khi gỡ component và không đặt state khi phản hồi đến muộn", async () => {
+  it("không đặt state khi phản hồi lịch sử đến muộn sau khi gỡ component và không hủy yêu cầu", async () => {
     const user = userEvent.setup();
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     let resolveHistory: (value: unknown) => void = () => {};
@@ -262,7 +262,7 @@ describe("WhoisPanel", () => {
     expect(historySignal?.aborted).toBe(false);
 
     unmount();
-    expect(historySignal?.aborted).toBe(true);
+    expect(historySignal?.aborted).toBe(false);
 
     resolveHistory(jsonResponse(whoisHistoryFixture));
     await Promise.resolve();
@@ -272,13 +272,14 @@ describe("WhoisPanel", () => {
     errorSpy.mockRestore();
   });
 
-  it("huỷ yêu cầu lịch sử trước đó khi đổi tên miền", async () => {
+  it("bỏ qua phản hồi lịch sử của tên miền cũ khi đổi tên miền", async () => {
     const user = userEvent.setup();
-    let historySignal: AbortSignal | undefined;
-    const fetchMock = vi.fn((url: string, init?: { signal?: AbortSignal }) => {
+    let resolveHistory: (value: unknown) => void = () => {};
+    const fetchMock = vi.fn((url: string) => {
       if (url.startsWith("/api/whois/history")) {
-        historySignal = init?.signal;
-        return new Promise(() => {});
+        return new Promise((resolve) => {
+          resolveHistory = resolve;
+        });
       }
       return Promise.resolve(jsonResponse(whoisFixture));
     });
@@ -287,12 +288,15 @@ describe("WhoisPanel", () => {
     const { rerender } = render(<WhoisPanel domain="acme.com" />);
     await screen.findByText("GoDaddy.com, LLC");
     await user.click(screen.getByRole("button", { name: "Tải lịch sử domain" }));
-    expect(historySignal?.aborted).toBe(false);
 
     rerender(<WhoisPanel domain="other.org" />);
-
-    expect(historySignal?.aborted).toBe(true);
     expect(await screen.findByRole("button", { name: "Tải lịch sử domain" })).toBeEnabled();
+
+    resolveHistory(jsonResponse(whoisHistoryFixture));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(screen.queryByLabelText("Dòng thời gian thay đổi")).toBeNull();
+    expect(screen.getByRole("button", { name: "Tải lịch sử domain" })).toBeEnabled();
   });
 
   it("đặt lại lịch sử về trạng thái chờ và tải lại bản ghi khi đổi tên miền", async () => {

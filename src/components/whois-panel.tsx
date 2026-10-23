@@ -188,13 +188,11 @@ function HistorySection({ domain }: { domain: string }) {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
-      controllerRef.current?.abort();
       controllerRef.current = null;
     };
   }, [domain]);
 
   async function load() {
-    controllerRef.current?.abort();
     const controller = new AbortController();
     controllerRef.current = controller;
     const isCurrent = () => mountedRef.current && controllerRef.current === controller;
@@ -315,7 +313,6 @@ export function WhoisPanel({ domain }: { domain: string }) {
     return () => {
       active = false;
       window.clearTimeout(timeout);
-      controller.abort();
     };
   }, [domain, reloadToken]);
 

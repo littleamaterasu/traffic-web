@@ -137,6 +137,7 @@ Items acknowledged and deferred at milestone close, most recent first:
 | 261023-duc | SE Ranking: remove overview panel (SERK-01 dropped), re-add on-demand ad copy without volume/CPC (SERK-02) | 2026-10-23 | 4b1198a | [261023-duc-se-ranking-remove-overview-panel-re-add-](./quick/261023-duc-se-ranking-remove-overview-panel-re-add-/) |
 | 261023-eh3 | Sync planning docs with implemented code (documentation only) | 2026-10-23 | 4df25c2 | [261023-eh3-sync-planning-docs-with-implemented-code](./quick/261023-eh3-sync-planning-docs-with-implemented-code/) |
 | 261023-fs0 | Fix WHOIS history noise (case-only registrar, renewals, null flapping) and stop exposing registrant text | 2026-10-23 | 052ec67 | [261023-fs0-fix-whois-history-noise-and-registrant-e](./quick/261023-fs0-fix-whois-history-noise-and-registrant-e/) |
+| 261023-fw6 | Harden WHOIS integration after review (registrant leak, purchase budget, www dedup, shape validation, panel abort) | 2026-10-23 | 53e80c1 | [261023-fw6-harden-whois-integration-after-review](./quick/261023-fw6-harden-whois-integration-after-review/) |
 
 ## Session Continuity
 

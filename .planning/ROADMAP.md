@@ -231,11 +231,11 @@ Plans:
 - [x] 09-01-PLAN.md — Types, formatDate, pure whois-insights helpers (wave 1)
 - [x] 09-02-PLAN.md — WhoisXML client, preview/cap/purchase, cached stores (wave 2)
 - [x] 09-03-PLAN.md — WhoisPanel, fixture and tests (wave 2)
-- [ ] 09-04-PLAN.md — /api/whois and /api/whois/history routes (wave 3)
+- [x] 09-04-PLAN.md — /api/whois and /api/whois/history routes (wave 3)
 - [ ] 09-05-PLAN.md — Mount panel in dashboard, fix dashboard tests (wave 4)
 
 **Planning gate**: live-probed 2026-10-23 with a trial key (credits: WHOIS API 500, Domain Research Suite 499): `whoisserver/WhoisService` returns createdDate/updatedDate/expiresDate/estimatedDomainAge/registrarName/status/nameServers (1 credit); `whois-history.whoisxmlapi.com/api/v1?mode=preview` returns `{recordsCount}` (1 credit); `mode=purchase` returned 44 records for gohighlevel.com and cost 50 credits (~1/record), each with audit date, registrar, nameServers, status, registrantContact and rawText. Cost scales with record count, hence preview + cap + on-demand + 24h cache. Trial credits are finite and the key must stay server-side.
-**Plans:** 3/5 plans executed
+**Plans:** 4/5 plans executed
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 9 to break down)

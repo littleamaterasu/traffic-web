@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { computeStarFills } from "./trustpilot-stars";
 
 describe("computeStarFills", () => {

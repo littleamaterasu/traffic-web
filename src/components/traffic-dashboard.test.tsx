@@ -2,13 +2,19 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { trafficFixture } from "@/test/fixture";
+import { trustpilotFixture } from "@/test/trustpilot-fixture";
 import { whoisFixture } from "@/test/whois-fixture";
 import { TrafficDashboard } from "./traffic-dashboard";
 
 function trafficFetch(payload: unknown) {
   return vi.fn(async (input: RequestInfo | URL) => ({
     ok: true,
-    json: async () => (String(input).startsWith("/api/whois") ? whoisFixture : payload),
+    json: async () => {
+      const url = String(input);
+      if (url.startsWith("/api/trustpilot")) return trustpilotFixture;
+      if (url.startsWith("/api/whois")) return whoisFixture;
+      return payload;
+    },
   }));
 }
 
@@ -148,6 +154,27 @@ describe("TrafficDashboard", () => {
     }
   });
 
+  it("hiển thị panel Trustpilot, chỉ gọi /api/trustpilot sau khi bấm nút", async () => {
+    const user = userEvent.setup();
+    const fetchMock = trafficFetch(trafficFixture);
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<TrafficDashboard />);
+    await user.click(screen.getByRole("button", { name: "vercel.com" }));
+
+    expect(await screen.findByText("Agentic Infrastructure - Vercel")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Đánh giá Trustpilot" })).toBeInTheDocument();
+    const loadButton = screen.getByRole("button", { name: "Tải đánh giá Trustpilot" });
+    const trustpilotCalls = () =>
+      fetchMock.mock.calls.map((call) => String(call[0])).filter((url) => url.startsWith("/api/trustpilot"));
+    expect(trustpilotCalls()).toHaveLength(0);
+
+    await user.click(loadButton);
+
+    expect(await screen.findByText("Acme")).toBeInTheDocument();
+    expect(trustpilotCalls()).toEqual(["/api/trustpilot?domain=vercel.com"]);
+  });
+
   it("lỗi WHOIS không làm hỏng phần còn lại của báo cáo", async () => {
     const user = userEvent.setup();
     vi.stubGlobal(
@@ -160,7 +187,11 @@ describe("TrafficDashboard", () => {
                 error: { code: "missing_api_key", message: "Chưa cấu hình WHOIS_API_KEY trên máy chủ." },
               }),
             }
-          : { ok: true, json: async () => trafficFixture },
+          : {
+              ok: true,
+              json: async () =>
+                String(input).startsWith("/api/trustpilot") ? trustpilotFixture : trafficFixture,
+            },
       ),
     );
 

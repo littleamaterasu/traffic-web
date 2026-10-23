@@ -1,6 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { clearWhoisCache, fetchWhoisRecord, getWhoisRecord, WhoisApiError } from "./whois";
+import {
+  clearWhoisCache,
+  fetchWhoisHistory,
+  fetchWhoisRecord,
+  getWhoisHistory,
+  getWhoisRecord,
+  HISTORY_RECORD_CAP,
+  WhoisApiError,
+} from "./whois";
 
 const API_KEY = "test-key-123";
 const NOW = new Date("2026-10-23T00:00:00Z");
@@ -188,5 +196,161 @@ describe("getWhoisRecord", () => {
     await getWhoisRecord("acme.com", API_KEY, impl);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+function historyRecord(audit: string, registrar: string, extra: Record<string, unknown> = {}) {
+  return {
+    audit,
+    registrarName: registrar,
+    nameServers: ["a.ns.com|b.ns.com"],
+    expiresDateISO8601: "2027-01-11T00:00:00Z",
+    registrantContact: {
+      organization: "Acme Co",
+      name: "NAME-SENTINEL",
+      email: "EMAIL-SENTINEL@example.com",
+      telephone: "PHONE-SENTINEL",
+    },
+    rawText: "RAW-SENTINEL",
+    cleanText: "CLEAN-SENTINEL",
+    ...extra,
+  };
+}
+
+function historyFetch(count: unknown, records?: unknown[]) {
+  return vi.fn().mockImplementation(async (input: unknown) => {
+    const mode = new URL(String(input)).searchParams.get("mode");
+    if (mode === "preview") return jsonResponse({ recordsCount: count });
+    return jsonResponse({ recordsCount: count, ...(records ? { records } : {}) });
+  });
+}
+
+function modes(fetchMock: ReturnType<typeof vi.fn>): (string | null)[] {
+  return fetchMock.mock.calls.map((call) => new URL(String(call[0])).searchParams.get("mode"));
+}
+
+describe("fetchWhoisHistory", () => {
+  beforeEach(() => {
+    clearWhoisCache();
+  });
+
+  it("xem trước trước và trả lịch sử rỗng khi recordsCount là 0", async () => {
+    const fetchMock = historyFetch(0);
+    const result = await fetchWhoisHistory("acme.com", API_KEY, fetchMock as unknown as typeof fetch);
+
+    const url = new URL(String(fetchMock.mock.calls[0][0]));
+    expect(url.host).toBe("whois-history.whoisxmlapi.com");
+    expect(url.pathname).toBe("/api/v1");
+    expect(url.searchParams.get("domainName")).toBe("acme.com");
+    expect(url.searchParams.get("apiKey")).toBe(API_KEY);
+    expect(result.summary.records).toBe(0);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("từ chối mua khi vượt giới hạn và chỉ gọi upstream một lần", async () => {
+    const fetchMock = historyFetch(HISTORY_RECORD_CAP + 1);
+    const error = await fetchWhoisHistory(
+      "acme.com",
+      API_KEY,
+      fetchMock as unknown as typeof fetch,
+    ).catch((caught) => caught);
+
+    expect(error).toBeInstanceOf(WhoisApiError);
+    expect(error).toMatchObject({ status: 422, code: "too_many_records" });
+    expect(error.message).toContain("101");
+    expect(error.message).toContain(String(HISTORY_RECORD_CAP));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(modes(fetchMock)).not.toContain("purchase");
+  });
+
+  it("mua dữ liệu khi trong giới hạn, rút gọn và loại bỏ dữ liệu thô", async () => {
+    const records = [
+      historyRecord("2024-01-01", "GoDaddy.com, LLC"),
+      historyRecord("2025-01-01", "Namecheap, Inc."),
+      {
+        audit: { updatedDate: "2023-01-01", createdDate: "2020-01-01" },
+        registrarName: "GoDaddy.com, LLC",
+        nameServers: ["a.ns.com|b.ns.com"],
+        expiresDateISO8601: "2027-01-11T00:00:00Z",
+        registrantContact: { name: "Acme Co", email: "EMAIL-SENTINEL@example.com" },
+      },
+    ];
+    const fetchMock = historyFetch(44, records);
+    const result = await fetchWhoisHistory("acme.com", API_KEY, fetchMock as unknown as typeof fetch);
+
+    expect(modes(fetchMock)).toEqual(["preview", "purchase"]);
+    expect(result.summary.records).toBe(3);
+    expect(result.summary.first_seen).toBe("2023-01-01");
+    expect(result.summary.registrar_changes).toBe(1);
+    const serialized = JSON.stringify(result);
+    for (const sentinel of [
+      "RAW-SENTINEL",
+      "CLEAN-SENTINEL",
+      "EMAIL-SENTINEL",
+      "PHONE-SENTINEL",
+      "NAME-SENTINEL",
+      API_KEY,
+    ]) {
+      expect(serialized).not.toContain(sentinel);
+    }
+  });
+
+  it("báo whois_error khi recordsCount không phải số và trả rỗng khi thiếu records", async () => {
+    const bad = historyFetch("many");
+    await expect(
+      fetchWhoisHistory("acme.com", API_KEY, bad as unknown as typeof fetch),
+    ).rejects.toMatchObject({ status: 502, code: "whois_error" });
+
+    const noRecords = historyFetch(5);
+    const result = await fetchWhoisHistory(
+      "acme.com",
+      API_KEY,
+      noRecords as unknown as typeof fetch,
+    );
+    expect(result.summary.records).toBe(0);
+  });
+});
+
+describe("getWhoisHistory", () => {
+  beforeEach(() => {
+    clearWhoisCache();
+  });
+
+  it("lần gọi thứ hai không gọi upstream thêm", async () => {
+    const fetchMock = historyFetch(2, [
+      historyRecord("2024-01-01", "GoDaddy.com, LLC"),
+      historyRecord("2025-01-01", "GoDaddy.com, LLC"),
+    ]);
+    const impl = fetchMock as unknown as typeof fetch;
+
+    await getWhoisHistory("acme.com", API_KEY, impl);
+    await getWhoisHistory("acme.com", API_KEY, impl);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("sau lỗi too_many_records lần gọi tiếp theo không xem trước lại", async () => {
+    const fetchMock = historyFetch(500);
+    const impl = fetchMock as unknown as typeof fetch;
+
+    await expect(getWhoisHistory("acme.com", API_KEY, impl)).rejects.toMatchObject({
+      code: "too_many_records",
+    });
+    await expect(getWhoisHistory("acme.com", API_KEY, impl)).rejects.toMatchObject({
+      code: "too_many_records",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("clearWhoisCache xoá cả ba kho cache", async () => {
+    const fetchMock = historyFetch(0);
+    const impl = fetchMock as unknown as typeof fetch;
+
+    await getWhoisHistory("acme.com", API_KEY, impl);
+    clearWhoisCache();
+    await getWhoisHistory("acme.com", API_KEY, impl);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

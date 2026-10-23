@@ -1,13 +1,16 @@
 import { createCachedStore } from "@/lib/cached-store";
 import {
   classifyAge,
+  compactHistory,
   computeAgeYears,
   detectPrivacy,
   normalizeNameServers,
 } from "@/lib/whois-insights";
-import type { WhoisRecord } from "@/types/whois";
+import type { WhoisHistory, WhoisHistoryRecordInput, WhoisRecord } from "@/types/whois";
 
 const WHOIS_BASE_URL = "https://www.whoisxmlapi.com/whoisserver/WhoisService";
+const HISTORY_BASE_URL = "https://whois-history.whoisxmlapi.com/api/v1";
+export const HISTORY_RECORD_CAP = 100;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export class WhoisApiError extends Error {
@@ -175,7 +178,111 @@ export async function fetchWhoisRecord(
   };
 }
 
+interface UpstreamHistoryRecord {
+  audit?: unknown;
+  registrarName?: unknown;
+  nameServers?: unknown;
+  expiresDateISO8601?: unknown;
+  updatedDateISO8601?: unknown;
+  createdDateISO8601?: unknown;
+  registrantContact?: UpstreamContact | null;
+}
+
+interface UpstreamHistoryBody {
+  recordsCount?: unknown;
+  records?: unknown;
+}
+
+function readAudit(record: UpstreamHistoryRecord): string | null {
+  const audit = record.audit;
+  if (typeof audit === "string") return audit;
+  if (audit && typeof audit === "object") {
+    const nested = audit as { updatedDate?: unknown; createdDate?: unknown };
+    const date = str(nested.updatedDate) ?? str(nested.createdDate);
+    if (date) return date;
+  }
+  return str(record.updatedDateISO8601) ?? str(record.createdDateISO8601);
+}
+
+function toHistoryInput(raw: UpstreamHistoryRecord): WhoisHistoryRecordInput {
+  const contact = raw.registrantContact;
+  return {
+    audit: readAudit(raw),
+    registrar: str(raw.registrarName),
+    name_servers: raw.nameServers,
+    registrant_organization: str(contact?.organization) ?? str(contact?.name),
+    expires_date: str(raw.expiresDateISO8601),
+  };
+}
+
+async function fetchHistoryPreview(
+  domain: string,
+  apiKey: string,
+  fetchImpl: typeof fetch,
+): Promise<number> {
+  const body = await requestWhois<UpstreamHistoryBody | null>(
+    HISTORY_BASE_URL,
+    { domainName: domain, mode: "preview" },
+    apiKey,
+    fetchImpl,
+  );
+  const count = num(body?.recordsCount);
+  if (count === null) throw failure(502);
+  return count;
+}
+
+async function fetchHistoryPurchase(
+  domain: string,
+  apiKey: string,
+  fetchImpl: typeof fetch,
+): Promise<WhoisHistory> {
+  const body = await requestWhois<UpstreamHistoryBody | null>(
+    HISTORY_BASE_URL,
+    { domainName: domain, mode: "purchase" },
+    apiKey,
+    fetchImpl,
+  );
+  const records = Array.isArray(body?.records) ? (body.records as UpstreamHistoryRecord[]) : [];
+  return compactHistory(
+    records
+      .filter((record) => record && typeof record === "object")
+      .map((record) => toHistoryInput(record)),
+  );
+}
+
+function tooManyRecords(count: number, cap: number): WhoisApiError {
+  return new WhoisApiError(
+    422,
+    "too_many_records",
+    `Domain có ${count} bản ghi lịch sử, vượt giới hạn ${cap} bản ghi cho mỗi lần tải nên hệ thống không mua dữ liệu để tiết kiệm credits.`,
+  );
+}
+
+async function loadHistory(
+  domain: string,
+  apiKey: string,
+  fetchImpl: typeof fetch,
+  cap: number,
+  count: number,
+): Promise<WhoisHistory> {
+  if (count > cap) throw tooManyRecords(count, cap);
+  if (count === 0) return compactHistory([]);
+  return fetchHistoryPurchase(domain, apiKey, fetchImpl);
+}
+
+export async function fetchWhoisHistory(
+  domain: string,
+  apiKey: string,
+  fetchImpl: typeof fetch = fetch,
+  cap: number = HISTORY_RECORD_CAP,
+): Promise<WhoisHistory> {
+  const count = await fetchHistoryPreview(domain, apiKey, fetchImpl);
+  return loadHistory(domain, apiKey, fetchImpl, cap, count);
+}
+
 const recordStore = createCachedStore<WhoisRecord | null>();
+const previewStore = createCachedStore<number>();
+const historyStore = createCachedStore<WhoisHistory>();
 
 export function getWhoisRecord(
   domain: string,
@@ -185,6 +292,21 @@ export function getWhoisRecord(
   return recordStore.get(domain, () => fetchWhoisRecord(domain, apiKey, fetchImpl));
 }
 
+export function getWhoisHistory(
+  domain: string,
+  apiKey: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<WhoisHistory> {
+  return historyStore.get(domain, async () => {
+    const count = await previewStore.get(domain, () =>
+      fetchHistoryPreview(domain, apiKey, fetchImpl),
+    );
+    return loadHistory(domain, apiKey, fetchImpl, HISTORY_RECORD_CAP, count);
+  });
+}
+
 export function clearWhoisCache(): void {
   recordStore.clear();
+  previewStore.clear();
+  historyStore.clear();
 }

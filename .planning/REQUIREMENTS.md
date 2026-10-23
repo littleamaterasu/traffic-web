@@ -67,8 +67,8 @@ Source: domain-check checklist; analysis and decisions in `.planning/research/DO
 - [ ] **PERS-01**: Lookups, snapshots, and researcher-entered affiliate inputs persist per domain across server restarts in a local database (engine chosen at Phase 5 planning gate)
 - [ ] **PERS-02**: Traffic and ad data are stored as timestamped snapshots so time-series can be derived later
 - [ ] **VET-01**: Researcher sees zero-credit derived callouts from existing data — Tier-1 geo share (US/UK/CA/AU), brand vs non-brand keyword split, referral/paid-search share, threshold badges (visits, bounce rate)
-- [ ] **VET-02**: Researcher sees domain age (years since creation), registrar, expiry, last-updated date, status flags, nameservers, and privacy-protected indicator from the WhoisXML WHOIS API (1 credit, cached 24h), with a short Vietnamese verdict on age (e.g., <1 năm / 1–3 năm / >3 năm per the checklist's 2–3 year trust threshold)
-- [ ] **VET-06**: Researcher can load, on explicit click only (credit-aware: preview first, fixed record cap), the domain's WHOIS history from the WhoisXML WHOIS History API and sees a compact change timeline (registrar, nameserver, registrant-organization/privacy and expiry changes with dates) with a Vietnamese volatility summary; raw WHOIS text is never sent to the browser (provider history replaces the earlier own-snapshot approach, so no persistence is needed)
+- [x] **VET-02**: Researcher sees domain age (years since creation), registrar, expiry, last-updated date, status flags, nameservers, and privacy-protected indicator from the WhoisXML WHOIS API (1 credit, cached 24h), with a short Vietnamese verdict on age (e.g., <1 năm / 1–3 năm / >3 năm per the checklist's 2–3 year trust threshold)
+- [x] **VET-06**: Researcher can load, on explicit click only (credit-aware: preview first, fixed record cap), the domain's WHOIS history from the WhoisXML WHOIS History API and sees a compact change timeline (registrar, nameserver, registrant-organization/privacy and expiry changes with dates) with a Vietnamese volatility summary; raw WHOIS text is never sent to the browser (provider history replaces the earlier own-snapshot approach, so no persistence is needed)
 - [ ] **TRST-01**: Researcher sees the domain's Trustpilot score and review count (with link to the Trustpilot page), fetched server-side and cached 24h
 - [ ] **TRST-02**: Researcher sees a Vietnamese empty state when the domain has no Trustpilot page or the source is unreachable, without the report failing; the figure is labeled with source and fetch date
 - [ ] **VET-03**: Researcher sees an affiliate-link signal from the Backlinks sample (`?ref=`/`?via=`/`?aff=` in `to_url`)
@@ -151,8 +151,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PERS-01 | Phase 5 | Pending |
 | PERS-02 | Phase 5 | Pending |
 | VET-01 | Phase 5 | Pending |
-| VET-02 | Phase 9 | Pending |
-| VET-06 | Phase 9 | Pending |
+| VET-02 | Phase 9 | Complete |
+| VET-06 | Phase 9 | Complete |
 | TRST-01 | Phase 5 | Pending |
 | TRST-02 | Phase 5 | Pending |
 | ADLG-01 | Phase 6 | Complete (needs re-check, 300b113) |

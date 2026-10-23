@@ -52,6 +52,11 @@ export interface SeRankingResponse {
   domain: string;
   source: string;
   overview: SeRankingSlice<SeRankingOverview>;
+}
+
+export interface SeRankingCompetitorsResponse {
+  domain: string;
+  source: string;
   competitors: SeRankingSlice<SeRankingCompetitor[]>;
 }
 

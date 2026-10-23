@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  SeRankingApiError,
-  getSeRankingCompetitors,
-  getSeRankingOverview,
-} from "@/lib/seranking";
+import { SeRankingApiError, getSeRankingOverview } from "@/lib/seranking";
 import { DomainValidationError, normalizeDomain } from "@/lib/domain";
 import type { ApiErrorBody } from "@/types/traffic";
 import type {
@@ -16,7 +12,6 @@ export const runtime = "nodejs";
 
 const SOURCE_PATTERN = /^[a-z]{2}$/;
 const DEFAULT_SOURCE = "us";
-const LIST_LIMIT = 10;
 
 function errorResponse(status: number, code: string, message: string) {
   return NextResponse.json<ApiErrorBody>({ error: { code, message } }, { status });
@@ -56,17 +51,13 @@ export async function GET(request: NextRequest) {
     return errorResponse(500, "missing_api_key", "Chưa cấu hình SE_RANKING_API_KEY trên máy chủ.");
   }
 
-  const [overview, competitors] = await Promise.allSettled([
-    getSeRankingOverview(domain, apiKey),
-    getSeRankingCompetitors(domain, source, LIST_LIMIT, apiKey),
-  ]);
+  const [overview] = await Promise.allSettled([getSeRankingOverview(domain, apiKey)]);
 
   return NextResponse.json<SeRankingResponse>(
     {
       domain,
       source,
       overview: toSlice(overview),
-      competitors: toSlice(competitors),
     },
     { headers: { "Cache-Control": "private, max-age=0, must-revalidate" } },
   );

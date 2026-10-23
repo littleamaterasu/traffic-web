@@ -1,6 +1,7 @@
 import type {
   SeRankingBacklinksResponse,
   SeRankingCompetitor,
+  SeRankingCompetitorsResponse,
   SeRankingResponse,
 } from "@/types/seranking";
 
@@ -35,6 +36,11 @@ export const serankingFixture: SeRankingResponse = {
     },
     error: null,
   },
+};
+
+export const serankingCompetitorsFixture: SeRankingCompetitorsResponse = {
+  domain: "acme.com",
+  source: "us",
   competitors: {
     data: COMPETITOR_ROWS,
     error: null,

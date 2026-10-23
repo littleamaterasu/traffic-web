@@ -25,7 +25,6 @@ export interface WhoisRecord {
   registrar: string | null;
   status: string[];
   name_servers: string[];
-  registrant_organization: string | null;
   privacy_protected: boolean | null;
 }
 

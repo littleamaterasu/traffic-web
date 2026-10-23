@@ -2,6 +2,7 @@ import { createCachedStore } from "@/lib/cached-store";
 import {
   classifyAge,
   compactHistory,
+  computeAgeDays,
   computeAgeYears,
   detectPrivacy,
   normalizeNameServers,
@@ -11,7 +12,30 @@ import type { WhoisHistory, WhoisHistoryRecordInput, WhoisRecord } from "@/types
 const WHOIS_BASE_URL = "https://www.whoisxmlapi.com/whoisserver/WhoisService";
 const HISTORY_BASE_URL = "https://whois-history.whoisxmlapi.com/api/v1";
 export const HISTORY_RECORD_CAP = 100;
+export const HISTORY_PURCHASES_PER_DAY = 10;
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+let purchaseTimestamps: number[] = [];
+
+export function canonicalWhoisDomain(domain: string): string {
+  const lower = domain.toLowerCase();
+  if (!lower.startsWith("www.")) return lower;
+  const rest = lower.slice(4);
+  return rest.includes(".") ? rest : lower;
+}
+
+function reservePurchase(now: () => number): void {
+  const current = now();
+  purchaseTimestamps = purchaseTimestamps.filter((time) => time > current - DAY_MS);
+  if (purchaseTimestamps.length >= HISTORY_PURCHASES_PER_DAY) {
+    throw new WhoisApiError(
+      429,
+      "history_budget_exceeded",
+      "Đã đạt giới hạn 10 lượt mua lịch sử WHOIS mỗi 24 giờ để bảo vệ credits WhoisXML. Vui lòng thử lại sau.",
+    );
+  }
+  purchaseTimestamps.push(current);
+}
 
 export class WhoisApiError extends Error {
   constructor(
@@ -123,19 +147,13 @@ function parseStatus(value: unknown): string[] {
   return tokens.filter((token) => token && !token.toLowerCase().startsWith("http"));
 }
 
-function wholeDaysBetween(createdDate: string | null, now: Date): number | null {
-  if (!createdDate) return null;
-  const time = Date.parse(createdDate);
-  if (Number.isNaN(time) || time > now.getTime()) return null;
-  return Math.floor((now.getTime() - time) / DAY_MS);
-}
-
 export async function fetchWhoisRecord(
-  domain: string,
+  rawDomain: string,
   apiKey: string,
   fetchImpl: typeof fetch = fetch,
   now: Date = new Date(),
 ): Promise<WhoisRecord | null> {
+  const domain = canonicalWhoisDomain(rawDomain);
   const body = await requestWhois<UpstreamWhoisBody | null>(
     WHOIS_BASE_URL,
     { domainName: domain, outputFormat: "JSON" },
@@ -167,13 +185,12 @@ export async function fetchWhoisRecord(
     created_date: created,
     updated_date: updated,
     expires_date: expires,
-    age_days: estimated ?? wholeDaysBetween(created, now),
+    age_days: computeAgeDays(created, estimated, now),
     age_years: ageYears,
     age_verdict: classifyAge(ageYears),
     registrar,
     status: parseStatus(record.status ?? registry.status),
     name_servers: normalizeNameServers(record.nameServers?.hostNames),
-    registrant_organization: organization,
     privacy_protected: detectPrivacy(organization, registrantName),
   };
 }
@@ -235,6 +252,7 @@ async function fetchHistoryPurchase(
   domain: string,
   apiKey: string,
   fetchImpl: typeof fetch,
+  cap: number,
 ): Promise<WhoisHistory> {
   const body = await requestWhois<UpstreamHistoryBody | null>(
     HISTORY_BASE_URL,
@@ -242,7 +260,12 @@ async function fetchHistoryPurchase(
     apiKey,
     fetchImpl,
   );
-  const records = Array.isArray(body?.records) ? (body.records as UpstreamHistoryRecord[]) : [];
+  if (!body || typeof body !== "object") throw failure(502);
+  let records: UpstreamHistoryRecord[];
+  if (Array.isArray(body.records)) records = body.records as UpstreamHistoryRecord[];
+  else if (num(body.recordsCount) === 0) records = [];
+  else throw failure(502);
+  if (records.length > cap) throw tooManyRecords(records.length, cap);
   return compactHistory(
     records
       .filter((record) => record && typeof record === "object")
@@ -264,20 +287,23 @@ async function loadHistory(
   fetchImpl: typeof fetch,
   cap: number,
   count: number,
+  reserve: () => void,
 ): Promise<WhoisHistory> {
   if (count > cap) throw tooManyRecords(count, cap);
   if (count === 0) return compactHistory([]);
-  return fetchHistoryPurchase(domain, apiKey, fetchImpl);
+  reserve();
+  return fetchHistoryPurchase(domain, apiKey, fetchImpl, cap);
 }
 
 export async function fetchWhoisHistory(
-  domain: string,
+  rawDomain: string,
   apiKey: string,
   fetchImpl: typeof fetch = fetch,
   cap: number = HISTORY_RECORD_CAP,
 ): Promise<WhoisHistory> {
+  const domain = canonicalWhoisDomain(rawDomain);
   const count = await fetchHistoryPreview(domain, apiKey, fetchImpl);
-  return loadHistory(domain, apiKey, fetchImpl, cap, count);
+  return loadHistory(domain, apiKey, fetchImpl, cap, count, () => undefined);
 }
 
 const recordStore = createCachedStore<WhoisRecord | null>();
@@ -285,27 +311,33 @@ const previewStore = createCachedStore<number>();
 const historyStore = createCachedStore<WhoisHistory>();
 
 export function getWhoisRecord(
-  domain: string,
+  rawDomain: string,
   apiKey: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<WhoisRecord | null> {
+  const domain = canonicalWhoisDomain(rawDomain);
   return recordStore.get(domain, () => fetchWhoisRecord(domain, apiKey, fetchImpl));
 }
 
 export function getWhoisHistory(
-  domain: string,
+  rawDomain: string,
   apiKey: string,
   fetchImpl: typeof fetch = fetch,
+  now: () => number = Date.now,
 ): Promise<WhoisHistory> {
+  const domain = canonicalWhoisDomain(rawDomain);
   return historyStore.get(domain, async () => {
     const count = await previewStore.get(domain, () =>
       fetchHistoryPreview(domain, apiKey, fetchImpl),
     );
-    return loadHistory(domain, apiKey, fetchImpl, HISTORY_RECORD_CAP, count);
+    return loadHistory(domain, apiKey, fetchImpl, HISTORY_RECORD_CAP, count, () =>
+      reservePurchase(now),
+    );
   });
 }
 
 export function clearWhoisCache(): void {
+  purchaseTimestamps = [];
   recordStore.clear();
   previewStore.clear();
   historyStore.clear();

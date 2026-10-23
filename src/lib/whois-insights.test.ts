@@ -5,6 +5,7 @@ import {
   classifyAge,
   classifyPrivacyState,
   compactHistory,
+  computeAgeDays,
   computeAgeYears,
   detectPrivacy,
   normalizeNameServers,
@@ -56,6 +57,30 @@ describe("computeAgeYears", () => {
   });
 });
 
+describe("computeAgeDays", () => {
+  const JAN_2026 = new Date("2026-01-01T00:00:00Z");
+
+  it("tính từ createdDate và bỏ qua ước tính", () => {
+    expect(computeAgeDays("2020-01-01", 99999, JAN_2026)).toBe(2192);
+    expect(computeAgeYears("2020-01-01", 99999, JAN_2026)).toBe(6);
+  });
+
+  it("dùng estimatedDomainAge khi thiếu createdDate", () => {
+    expect(computeAgeDays(null, 730, NOW)).toBe(730);
+    expect(computeAgeYears(null, 730, NOW)).toBeCloseTo(730 / 365.25, 5);
+  });
+
+  it("trả về null khi ngày tạo ở tương lai dù có ước tính", () => {
+    expect(computeAgeDays("2030-01-01", 730, NOW)).toBeNull();
+    expect(computeAgeYears("2030-01-01", 730, NOW)).toBeNull();
+  });
+
+  it("trả về null khi không có dữ liệu hợp lệ", () => {
+    expect(computeAgeDays(null, null, NOW)).toBeNull();
+    expect(computeAgeDays("abc", -5, NOW)).toBeNull();
+  });
+});
+
 describe("classifyAge", () => {
   it("classifyAge 0.99 là rất mới", () => {
     expect(classifyAge(0.99)?.level).toBe("very_new");
@@ -86,10 +111,23 @@ describe("detectPrivacy", () => {
     expect(detectPrivacy("REDACTED FOR PRIVACY")).toBe(true);
     expect(detectPrivacy("WhoisGuard Protected")).toBe(true);
     expect(detectPrivacy("Contact Privacy Inc.")).toBe(true);
+    expect(detectPrivacy("Data Protected")).toBe(true);
+    expect(detectPrivacy("Withheld for Privacy")).toBe(true);
+    expect(detectPrivacy("Not Disclosed")).toBe(true);
+    expect(detectPrivacy("****")).toBe(true);
+  });
+
+  it("nhận diện phần dữ liệu bị nhà cung cấp che", () => {
+    expect(detectPrivacy("Registrant State/Province: New York")).toBe(true);
+    expect(detectPrivacy("Registrant Country: US")).toBe(true);
+    expect(detectPrivacy("Registrant Organization:")).toBe(true);
   });
 
   it("không đánh dấu tổ chức thông thường", () => {
     expect(detectPrivacy("Acme Corp")).toBe(false);
+    expect(detectPrivacy("Privacy Matters Ltd")).toBe(false);
+    expect(detectPrivacy("Proxy Engineering Inc")).toBe(false);
+    expect(detectPrivacy("Jeff Smith")).toBe(false);
   });
 
   it("trả về null khi không có văn bản", () => {
@@ -98,7 +136,7 @@ describe("detectPrivacy", () => {
   });
 
   it("dùng tên khi tổ chức trống", () => {
-    expect(detectPrivacy("", "Registration Private proxy")).toBe(true);
+    expect(detectPrivacy("", "Registration Private")).toBe(true);
   });
 });
 
@@ -198,7 +236,11 @@ describe("compactHistory", () => {
     expect(classifyPrivacyState("REDACTED FOR PRIVACY")).toBe("private");
     expect(classifyPrivacyState("******** ********")).toBe("private");
     expect(classifyPrivacyState("Jeff Smith")).toBe("public");
-    expect(classifyPrivacyState("Registrant State/Province: New York")).toBe("public");
+    expect(classifyPrivacyState("Registrant State/Province: New York")).toBe("private");
+    expect(classifyPrivacyState("Registrant Country: US")).toBe("private");
+    expect(classifyPrivacyState("Registrant Organization:")).toBe("private");
+    expect(classifyPrivacyState("Privacy Matters Ltd")).toBe("public");
+    expect(classifyPrivacyState("Proxy Engineering Inc")).toBe("public");
     expect(classifyPrivacyState(null)).toBe("unknown");
     expect(classifyPrivacyState("")).toBe("unknown");
     expect(classifyPrivacyState("   ")).toBe("unknown");
@@ -257,8 +299,8 @@ describe("compactHistory", () => {
       records: 7,
       registrar_changes: 0,
       nameserver_changes: 1,
-      privacy_changes: 3,
-      changes_total: 4,
+      privacy_changes: 1,
+      changes_total: 2,
     });
     expect(
       result.events.every((event) => ["registrar", "name_servers", "privacy"].includes(event.field)),

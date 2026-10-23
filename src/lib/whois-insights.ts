@@ -29,8 +29,22 @@ export const WHOIS_PRIVACY_STATE_LABELS: Record<Exclude<WhoisPrivacyState, "unkn
   public: "Công khai",
 };
 
+const DAY_MS = 86_400_000;
+
 const PRIVACY_PATTERN =
-  /privacy|proxy|redacted|whoisguard|data protected|withheld|identity protect|not disclosed/i;
+  /\b(?:domains?\s+by\s+proxy|whoisguard|privacy\s+services?|redacted\s+for\s+privacy|contact\s+privacy|identity\s+protect(?:ion)?|withheld(?:\s+for\s+privacy)?|data\s+protected|not\s+disclosed|privacy\s+protect(?:ed|ion)|registration\s+private)\b/i;
+const REDACTED_FRAGMENT = /^\s*registrant\s+(?:state\/province|country)\b/i;
+const EMPTY_REGISTRANT_LABEL = /^\s*registrant\s+organization\s*:?\s*$/i;
+const ASTERISKS_ONLY = /^[*\s]+$/;
+
+function isPrivateText(text: string): boolean {
+  return (
+    PRIVACY_PATTERN.test(text) ||
+    REDACTED_FRAGMENT.test(text) ||
+    EMPTY_REGISTRANT_LABEL.test(text) ||
+    ASTERISKS_ONLY.test(text)
+  );
+}
 
 function addYearsUtc(date: Date, years: number): number {
   return Date.UTC(
@@ -75,6 +89,28 @@ export function computeAgeYears(
   return null;
 }
 
+export function computeAgeDays(
+  createdDate: string | null,
+  estimatedDomainAge: number | null,
+  now: Date,
+): number | null {
+  if (createdDate) {
+    const time = Date.parse(createdDate);
+    if (!Number.isNaN(time)) {
+      if (time > now.getTime()) return null;
+      return Math.floor((now.getTime() - time) / DAY_MS);
+    }
+  }
+  if (
+    estimatedDomainAge != null &&
+    Number.isFinite(estimatedDomainAge) &&
+    estimatedDomainAge >= 0
+  ) {
+    return Math.round(estimatedDomainAge);
+  }
+  return null;
+}
+
 export function classifyAge(years: number | null): WhoisAgeVerdict | null {
   if (years == null || !Number.isFinite(years)) return null;
   const level: WhoisAgeLevel =
@@ -88,7 +124,7 @@ export function detectPrivacy(
 ): boolean | null {
   const text = organization?.trim() || name?.trim() || "";
   if (!text) return null;
-  return PRIVACY_PATTERN.test(text);
+  return isPrivateText(text);
 }
 
 export function normalizeNameServers(input: unknown): string[] {
@@ -107,8 +143,7 @@ export function normalizeNameServers(input: unknown): string[] {
 export function classifyPrivacyState(text: string | null): WhoisPrivacyState {
   const value = text?.trim() ?? "";
   if (!value) return "unknown";
-  if (PRIVACY_PATTERN.test(value) || /^[*\s]+$/.test(value)) return "private";
-  return "public";
+  return isPrivateText(value) ? "private" : "public";
 }
 
 function normalizeRegistrar(value: string): string {

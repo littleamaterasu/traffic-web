@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  HISTORY_PURCHASES_PER_DAY,
+  canonicalWhoisDomain,
   clearWhoisCache,
   fetchWhoisHistory,
   fetchWhoisRecord,
@@ -80,15 +82,63 @@ describe("fetchWhoisRecord", () => {
       registrar: "GoDaddy.com, LLC",
       status: ["clientTransferProhibited", "clientDeleteProhibited"],
       name_servers: ["ns1.acme.com", "ns2.acme.com"],
-      registrant_organization: "Domains By Proxy, LLC",
       privacy_protected: true,
     });
+    expect(result).not.toHaveProperty("registrant_organization");
     expect(result?.age_verdict?.level).toBe("established");
     expect(result?.age_years).toBeGreaterThan(9);
     const serialized = JSON.stringify(result);
     expect(serialized).not.toContain("RAW-SENTINEL");
     expect(serialized).not.toContain("secret@example.com");
     expect(serialized).not.toContain(API_KEY);
+    expect(serialized).not.toContain("Domains By Proxy");
+  });
+
+  it("không trả văn bản chủ sở hữu ra ngoài nhưng vẫn tính privacy_protected", async () => {
+    const body = recordBody({
+      registrant: { organization: "SENTINEL-ORG-ACME", name: "SENTINEL-PERSON-JANE" },
+    });
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(body));
+    const result = await fetchWhoisRecord(
+      "acme.com",
+      API_KEY,
+      fetchMock as unknown as typeof fetch,
+      NOW,
+    );
+
+    expect(result?.privacy_protected).toBe(false);
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toContain("SENTINEL-ORG-ACME");
+    expect(serialized).not.toContain("SENTINEL-PERSON-JANE");
+  });
+
+  it("tính age_days và age_years từ cùng ngày tạo, bỏ qua ước tính", async () => {
+    const body = recordBody({ createdDate: "2020-01-01T00:00:00Z", estimatedDomainAge: 99999 });
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(body));
+    const result = await fetchWhoisRecord(
+      "acme.com",
+      API_KEY,
+      fetchMock as unknown as typeof fetch,
+      new Date("2026-01-01T00:00:00Z"),
+    );
+
+    expect(result?.age_days).toBe(2192);
+    expect(result?.age_years).toBe(6);
+  });
+
+  it("ngày tạo ở tương lai cho age_days, age_years và nhận định đều null", async () => {
+    const body = recordBody({ createdDate: "2030-01-01T00:00:00Z", estimatedDomainAge: 500 });
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(body));
+    const result = await fetchWhoisRecord(
+      "acme.com",
+      API_KEY,
+      fetchMock as unknown as typeof fetch,
+      NOW,
+    );
+
+    expect(result?.age_days).toBeNull();
+    expect(result?.age_years).toBeNull();
+    expect(result?.age_verdict).toBeNull();
   });
 
   it("dùng registryData khi thiếu ngày ở cấp trên và ước tính tuổi khi thiếu ngày tạo", async () => {
@@ -113,6 +163,7 @@ describe("fetchWhoisRecord", () => {
     expect(result?.updated_date).toBe("2024-05-05T00:00:00Z");
     expect(result?.expires_date).toBe("2028-05-05T00:00:00Z");
     expect(result?.age_years).toBeCloseTo(3571 / 365.25, 5);
+    expect(result?.age_days).toBe(3571);
   });
 
   it("trả null khi không có WhoisRecord hoặc thiếu dữ liệu WHOIS", async () => {
@@ -196,6 +247,27 @@ describe("getWhoisRecord", () => {
     await getWhoisRecord("acme.com", API_KEY, impl);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("www.acme.com và acme.com dùng chung một mục cache và một lần gọi upstream", async () => {
+    const fetchMock = vi.fn().mockImplementation(async () => jsonResponse(recordBody()));
+    const impl = fetchMock as unknown as typeof fetch;
+
+    await getWhoisRecord("www.acme.com", API_KEY, impl);
+    await getWhoisRecord("acme.com", API_KEY, impl);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const url = new URL(String(fetchMock.mock.calls[0][0]));
+    expect(url.searchParams.get("domainName")).toBe("acme.com");
+  });
+});
+
+describe("canonicalWhoisDomain", () => {
+  it("bỏ tiền tố www. và chữ hoa nhưng giữ nguyên khi chỉ còn một nhãn", () => {
+    expect(canonicalWhoisDomain("WWW.Acme.com")).toBe("acme.com");
+    expect(canonicalWhoisDomain("acme.com")).toBe("acme.com");
+    expect(canonicalWhoisDomain("www.com")).toBe("www.com");
+    expect(canonicalWhoisDomain("shop.acme.com")).toBe("shop.acme.com");
   });
 });
 
@@ -296,21 +368,38 @@ describe("fetchWhoisHistory", () => {
     }
   });
 
-  it("báo whois_error khi recordsCount không phải số và trả rỗng khi thiếu records", async () => {
+  it("báo whois_error khi recordsCount không phải số", async () => {
     const bad = historyFetch("many");
     await expect(
       fetchWhoisHistory("acme.com", API_KEY, bad as unknown as typeof fetch),
     ).rejects.toMatchObject({ status: 502, code: "whois_error" });
+  });
 
+  it("báo whois_error khi mua mà recordsCount lớn hơn 0 nhưng thiếu records", async () => {
     const noRecords = historyFetch(5);
-    const result = await fetchWhoisHistory(
-      "acme.com",
-      API_KEY,
-      noRecords as unknown as typeof fetch,
+    await expect(
+      fetchWhoisHistory("acme.com", API_KEY, noRecords as unknown as typeof fetch),
+    ).rejects.toMatchObject({ status: 502, code: "whois_error" });
+  });
+
+  it("từ chối khi số bản ghi đã mua vượt giới hạn", async () => {
+    const records = Array.from({ length: 4 }, (_, index) =>
+      historyRecord(`202${index}-01-01`, "GoDaddy.com, LLC"),
     );
-    expect(result.summary.records).toBe(0);
+    const fetchMock = historyFetch(2, records);
+    await expect(
+      fetchWhoisHistory("acme.com", API_KEY, fetchMock as unknown as typeof fetch, 3),
+    ).rejects.toMatchObject({ status: 422, code: "too_many_records" });
   });
 });
+
+function purchaseBodyFetch(purchaseBody: unknown, count = 2) {
+  return vi.fn().mockImplementation(async (input: unknown) => {
+    const mode = new URL(String(input)).searchParams.get("mode");
+    if (mode === "preview") return jsonResponse({ recordsCount: count });
+    return jsonResponse(purchaseBody);
+  });
+}
 
 describe("getWhoisHistory", () => {
   beforeEach(() => {
@@ -342,6 +431,155 @@ describe("getWhoisHistory", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("www.acme.com và acme.com chỉ xem trước một lần và mua một lần", async () => {
+    const fetchMock = historyFetch(2, [
+      historyRecord("2024-01-01", "GoDaddy.com, LLC"),
+      historyRecord("2025-01-01", "GoDaddy.com, LLC"),
+    ]);
+    const impl = fetchMock as unknown as typeof fetch;
+
+    await getWhoisHistory("www.acme.com", API_KEY, impl);
+    await getWhoisHistory("acme.com", API_KEY, impl);
+
+    expect(modes(fetchMock)).toEqual(["preview", "purchase"]);
+    for (const call of fetchMock.mock.calls) {
+      expect(new URL(String(call[0])).searchParams.get("domainName")).toBe("acme.com");
+    }
+  });
+
+  it("phản hồi mua 200 sai cấu trúc là whois_error và không bị cache", async () => {
+    for (const bad of [{ error: "quota" }, null, "oops", { recordsCount: 2 }]) {
+      clearWhoisCache();
+      const fetchMock = purchaseBodyFetch(bad);
+      const impl = fetchMock as unknown as typeof fetch;
+
+      await expect(getWhoisHistory("acme.com", API_KEY, impl)).rejects.toMatchObject({
+        status: 502,
+        code: "whois_error",
+      });
+      await expect(getWhoisHistory("acme.com", API_KEY, impl)).rejects.toMatchObject({
+        code: "whois_error",
+      });
+      expect(modes(fetchMock).filter((mode) => mode === "purchase")).toHaveLength(2);
+    }
+  });
+
+  it("recordsCount 0 không có records là lịch sử rỗng và được cache", async () => {
+    const fetchMock = purchaseBodyFetch({ recordsCount: 0 }, 1);
+    const impl = fetchMock as unknown as typeof fetch;
+
+    const first = await getWhoisHistory("acme.com", API_KEY, impl);
+    await getWhoisHistory("acme.com", API_KEY, impl);
+
+    expect(first.summary.records).toBe(0);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("không cache và không trả dữ liệu khi số bản ghi mua về vượt giới hạn", async () => {
+    const records = Array.from({ length: HISTORY_RECORD_CAP + 1 }, (_, index) =>
+      historyRecord(`2000-01-${String((index % 28) + 1).padStart(2, "0")}`, "GoDaddy.com, LLC"),
+    );
+    const fetchMock = historyFetch(10, records);
+    const impl = fetchMock as unknown as typeof fetch;
+
+    await expect(getWhoisHistory("acme.com", API_KEY, impl)).rejects.toMatchObject({
+      status: 422,
+      code: "too_many_records",
+    });
+    await expect(getWhoisHistory("acme.com", API_KEY, impl)).rejects.toMatchObject({
+      code: "too_many_records",
+    });
+    expect(modes(fetchMock).filter((mode) => mode === "purchase")).toHaveLength(2);
+  });
+
+  describe("ngân sách mua lịch sử", () => {
+    function purchases(fetchMock: ReturnType<typeof vi.fn>): number {
+      return modes(fetchMock).filter((mode) => mode === "purchase").length;
+    }
+
+    const twoRecords = [
+      historyRecord("2024-01-01", "GoDaddy.com, LLC"),
+      historyRecord("2025-01-01", "GoDaddy.com, LLC"),
+    ];
+
+    it("lượt thứ 11 trong 24 giờ bị từ chối với history_budget_exceeded", async () => {
+      const fetchMock = historyFetch(2, twoRecords);
+      const impl = fetchMock as unknown as typeof fetch;
+      const now = () => 1_000_000;
+
+      for (let index = 0; index < HISTORY_PURCHASES_PER_DAY; index += 1) {
+        await getWhoisHistory(`site${index}.com`, API_KEY, impl, now);
+      }
+      const error = await getWhoisHistory("site-extra.com", API_KEY, impl, now).catch(
+        (caught) => caught,
+      );
+
+      expect(error).toBeInstanceOf(WhoisApiError);
+      expect(error).toMatchObject({ status: 429, code: "history_budget_exceeded" });
+      expect(purchases(fetchMock)).toBe(HISTORY_PURCHASES_PER_DAY);
+    });
+
+    it("cửa sổ trượt 24 giờ giải phóng ngân sách", async () => {
+      const fetchMock = historyFetch(2, twoRecords);
+      const impl = fetchMock as unknown as typeof fetch;
+      let t = 1_000_000;
+      const now = () => t;
+
+      for (let index = 0; index < HISTORY_PURCHASES_PER_DAY; index += 1) {
+        await getWhoisHistory(`site${index}.com`, API_KEY, impl, now);
+      }
+      await expect(getWhoisHistory("late.com", API_KEY, impl, now)).rejects.toMatchObject({
+        code: "history_budget_exceeded",
+      });
+
+      t += 24 * 60 * 60 * 1000 + 1;
+      const result = await getWhoisHistory("late.com", API_KEY, impl, now);
+      expect(result.summary.records).toBe(2);
+    });
+
+    it("lần gọi trúng cache, kể cả biến thể www., không tiêu tốn ngân sách", async () => {
+      const fetchMock = historyFetch(2, twoRecords);
+      const impl = fetchMock as unknown as typeof fetch;
+      const now = () => 1_000_000;
+
+      for (let index = 0; index < HISTORY_PURCHASES_PER_DAY; index += 1) {
+        await getWhoisHistory(`site${index}.com`, API_KEY, impl, now);
+      }
+      await getWhoisHistory("site0.com", API_KEY, impl, now);
+      await getWhoisHistory("www.site0.com", API_KEY, impl, now);
+
+      expect(purchases(fetchMock)).toBe(HISTORY_PURCHASES_PER_DAY);
+    });
+
+    it("vượt giới hạn bản ghi hoặc không có bản ghi thì không tiêu tốn ngân sách", async () => {
+      const now = () => 1_000_000;
+      const over = historyFetch(HISTORY_RECORD_CAP + 1) as unknown as typeof fetch;
+      const empty = historyFetch(0) as unknown as typeof fetch;
+
+      for (let index = 0; index < HISTORY_PURCHASES_PER_DAY + 2; index += 1) {
+        await getWhoisHistory(`over${index}.com`, API_KEY, over, now).catch(() => undefined);
+        await getWhoisHistory(`empty${index}.com`, API_KEY, empty, now);
+      }
+
+      const fetchMock = historyFetch(2, twoRecords);
+      const result = await getWhoisHistory("real.com", API_KEY, fetchMock as unknown as typeof fetch, now);
+      expect(result.summary.records).toBe(2);
+    });
+
+    it("clearWhoisCache đặt lại bộ đếm ngân sách", async () => {
+      const fetchMock = historyFetch(2, twoRecords);
+      const impl = fetchMock as unknown as typeof fetch;
+      const now = () => 1_000_000;
+
+      for (let index = 0; index < HISTORY_PURCHASES_PER_DAY; index += 1) {
+        await getWhoisHistory(`site${index}.com`, API_KEY, impl, now);
+      }
+      clearWhoisCache();
+
+      await expect(getWhoisHistory("fresh.com", API_KEY, impl, now)).resolves.toBeDefined();
+    });
   });
 
   it("clearWhoisCache xoá cả ba kho cache", async () => {

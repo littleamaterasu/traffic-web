@@ -96,7 +96,7 @@ Plans:
 
 **Goal**: Lookups and researcher inputs survive restarts, and the report opens with a business-sustainability block (how old and stable is the domain, what do customers say) plus derived callouts computed from data already fetched.
 **Depends on**: Phase 4
-**Requirements**: PERS-01, PERS-02, VET-01, TRST-01, TRST-02 (VET-02 and VET-06 moved to Phase 9, 2026-10-23: WhoisXML provides both the current record and real WHOIS history)
+**Requirements**: PERS-01, PERS-02, VET-01 (VET-02 and VET-06 moved to Phase 9, 2026-10-23: WhoisXML provides both the current record and real WHOIS history; TRST-01 and TRST-02 moved to Phase 10, 2026-10-23: served by the user's local Trustpilot scraper)
 **Success Criteria** (what must be TRUE):
 
   1. Researcher reopens a previously analyzed domain after a server restart and sees its saved snapshot and inputs
@@ -189,7 +189,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 (Ph
 | REFS-01, REFS-02, REFS-03, REFS-04, REFS-05 | 2 |
 | ADVR-01, ADVR-02, ADVR-03, ADVR-04, CRTV-01, CRTV-02 | 3 |
 | RPT-01, RPT-02, RPT-03, RPT-04 | 4 |
-| PERS-01, PERS-02, VET-01, TRST-01, TRST-02 | 5 |
+| PERS-01, PERS-02, VET-01 | 5 |
+| TRST-01, TRST-02 | 10 |
 | VET-02, VET-06 | 9 |
 | ADLG-01, ADLG-02, ADLG-03, ADLG-04 | 6 |
 | AFFL-01, AFFL-02, AFFL-03, ECON-01, ECON-02, ECON-03, VET-03 | 7 |
@@ -239,6 +240,26 @@ Plans:
 
 Plans:
 - [x] TBD (run /gsd-plan-phase 9 to break down) (completed 2026-10-23)
+
+### Phase 10: Trustpilot panel via local scraper service
+
+**Goal**: The researcher can load the domain's Trustpilot profile and latest reviews from the user's local scraper service and see them presented like the Trustpilot page (name, TrustScore with star boxes, review count, links, review cards), with honest empty/unavailable states.
+**Depends on**: Phase 1 (cached-store factory); independent of Phases 2–9
+**Requirements**: TRST-01, TRST-02
+**Success Criteria** (what must be TRUE):
+
+  1. Researcher clicks to load Trustpilot data; the server calls the configured scraper service (fixed base URL from env, validated domain, fixed limits) and the panel shows business name, TrustScore, star rating, total review count, a link to the Trustpilot page and a visit-website link
+  2. Researcher sees the latest reviews (up to 5) as Trustpilot-style cards: stars, heading, body, author, location, date
+  3. When the scraper is down, slow, returns `success:false`, or the domain has no Trustpilot page, the panel shows a Vietnamese state and the rest of the report is unaffected; the scraper URL is never sent to the browser
+
+**Plans:** 4 plans
+
+Plans:
+
+- [ ] 10-01-PLAN.md — Types, fixtures, scraper client with normalization and cache (wave 1)
+- [ ] 10-02-PLAN.md — /api/trustpilot route (wave 2)
+- [ ] 10-03-PLAN.md — Star helper and TrustpilotPanel (wave 2)
+- [ ] 10-04-PLAN.md — Dashboard mount, .env.example placeholder, scraper notes (wave 3)
 
 ---
 *Roadmap created: 2026-10-13 · Last updated: 2026-10-23 (reality-check sync)*

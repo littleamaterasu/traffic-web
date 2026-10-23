@@ -13,6 +13,13 @@ const compactUsdFormatter = new Intl.NumberFormat("vi-VN", {
   maximumFractionDigits: 1,
 });
 
+const dateFormatter = new Intl.DateTimeFormat("vi-VN", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
 export function formatNumber(value: number | null | undefined): string {
   return value == null ? "—" : numberFormatter.format(value);
 }
@@ -39,6 +46,13 @@ export function formatCurrency(value: number | null | undefined): string {
 
 export function formatCompactCurrency(value: number | null | undefined): string {
   return value == null ? "—" : `${compactUsdFormatter.format(value)} USD`;
+}
+
+export function formatDate(value: string | null | undefined): string {
+  if (!value) return "—";
+  const time = Date.parse(value);
+  if (Number.isNaN(time)) return "—";
+  return dateFormatter.format(new Date(time));
 }
 
 export function formatMonth(value: string | null | undefined): string {

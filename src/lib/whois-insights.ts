@@ -7,6 +7,7 @@ import type {
   WhoisHistory,
   WhoisHistoryRecordInput,
   WhoisHistorySummary,
+  WhoisPrivacyState,
 } from "@/types/whois";
 
 export const WHOIS_EVENT_CAP = 30;
@@ -20,8 +21,12 @@ export const WHOIS_AGE_VERDICT_LABELS: Record<WhoisAgeLevel, string> = {
 export const WHOIS_FIELD_LABELS: Record<WhoisChangeField, string> = {
   registrar: "Nhà đăng ký",
   name_servers: "Name server",
-  registrant: "Chủ sở hữu",
-  expires: "Hết hạn",
+  privacy: "Quyền riêng tư WHOIS",
+};
+
+export const WHOIS_PRIVACY_STATE_LABELS: Record<Exclude<WhoisPrivacyState, "unknown">, string> = {
+  private: "Ẩn thông tin",
+  public: "Công khai",
 };
 
 const PRIVACY_PATTERN =
@@ -99,11 +104,18 @@ export function normalizeNameServers(input: unknown): string[] {
   return [...result].sort();
 }
 
-function expiryYear(value: string | null): string | null {
-  if (!value) return null;
-  const time = Date.parse(value);
-  if (Number.isNaN(time)) return null;
-  return String(new Date(time).getUTCFullYear());
+export function classifyPrivacyState(text: string | null): WhoisPrivacyState {
+  const value = text?.trim() ?? "";
+  if (!value) return "unknown";
+  if (PRIVACY_PATTERN.test(value) || /^[*\s]+$/.test(value)) return "private";
+  return "public";
+}
+
+function normalizeRegistrar(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 function cleanText(value: string | null): string | null {
@@ -124,16 +136,13 @@ export function compactHistory(
   const counts: Record<WhoisChangeField, number> = {
     registrar: 0,
     name_servers: 0,
-    registrant: 0,
-    expires: 0,
+    privacy: 0,
   };
 
   let lastRegistrar: string | null = null;
+  let lastRegistrarKey: string | null = null;
   let lastNameServers: string | null = null;
-  let lastExpiry: string | null = null;
-  let lastRegistrant: string | null = null;
-  let lastRegistrantKey: string | null = null;
-  let seenFirst = false;
+  let lastPrivacy: WhoisPrivacyState | null = null;
 
   const push = (
     date: string,
@@ -148,32 +157,28 @@ export function compactHistory(
   for (const { record } of valid) {
     const date = record.audit as string;
     const registrar = cleanText(record.registrar);
+    const registrarKey = registrar ? normalizeRegistrar(registrar) : null;
     const nameServers = normalizeNameServers(record.name_servers).join(", ") || null;
-    const expiry = expiryYear(record.expires_date);
-    const registrant = cleanText(record.registrant_organization);
-    const registrantKey = registrant ? registrant.toLowerCase() : null;
+    const state = classifyPrivacyState(record.registrant_organization);
 
-    if (seenFirst) {
-      if (registrar && lastRegistrar && registrar !== lastRegistrar) {
-        push(date, "registrar", lastRegistrar, registrar);
+    if (registrar && registrarKey && lastRegistrar && registrarKey !== lastRegistrarKey) {
+      push(date, "registrar", lastRegistrar, registrar);
+    }
+    if (nameServers && lastNameServers && nameServers !== lastNameServers) {
+      push(date, "name_servers", lastNameServers, nameServers);
+    }
+    if (state !== "unknown") {
+      if (lastPrivacy !== null && lastPrivacy !== state) {
+        push(date, "privacy", lastPrivacy, state);
       }
-      if (nameServers && lastNameServers && nameServers !== lastNameServers) {
-        push(date, "name_servers", lastNameServers, nameServers);
-      }
-      if (registrantKey !== lastRegistrantKey) {
-        push(date, "registrant", lastRegistrant, registrant);
-      }
-      if (expiry && lastExpiry && expiry !== lastExpiry) {
-        push(date, "expires", lastExpiry, expiry);
-      }
+      lastPrivacy = state;
     }
 
-    if (registrar) lastRegistrar = registrar;
+    if (registrar) {
+      lastRegistrar = registrar;
+      lastRegistrarKey = registrarKey;
+    }
     if (nameServers) lastNameServers = nameServers;
-    if (expiry) lastExpiry = expiry;
-    lastRegistrant = registrant;
-    lastRegistrantKey = registrantKey;
-    seenFirst = true;
   }
 
   const total = events.length;
@@ -186,8 +191,7 @@ export function compactHistory(
       changes_total: total,
       registrar_changes: counts.registrar,
       nameserver_changes: counts.name_servers,
-      registrant_changes: counts.registrant,
-      expiry_changes: counts.expires,
+      privacy_changes: counts.privacy,
     },
     events: ordered.slice(0, maxEvents),
     events_truncated: total > maxEvents,
@@ -206,7 +210,7 @@ export function summarizeVolatility(summary: WhoisHistorySummary): string {
     return `${base}: thông tin đăng ký ổn định, không ghi nhận thay đổi.`;
   }
   if (summary.changes_total <= 3) {
-    return `${base}: có một vài thay đổi (${formatNumber(summary.changes_total)}).`;
+    return `${base}: có một vài thay đổi (${formatNumber(summary.changes_total)} thay đổi đăng ký (nhà đăng ký, name server, quyền riêng tư)).`;
   }
-  return `${base}: thay đổi nhiều (${formatNumber(summary.changes_total)} lần), nên xem kỹ dòng thời gian.`;
+  return `${base}: thay đổi nhiều (${formatNumber(summary.changes_total)} thay đổi đăng ký (nhà đăng ký, name server, quyền riêng tư)), nên xem kỹ dòng thời gian.`;
 }

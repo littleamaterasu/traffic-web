@@ -34,7 +34,9 @@ export interface WhoisResponse {
   whois: WhoisSlice<WhoisRecord>;
 }
 
-export type WhoisChangeField = "registrar" | "name_servers" | "registrant" | "expires";
+export type WhoisChangeField = "registrar" | "name_servers" | "privacy";
+
+export type WhoisPrivacyState = "private" | "public" | "unknown";
 
 export interface WhoisChangeEvent {
   date: string;
@@ -49,8 +51,7 @@ export interface WhoisHistorySummary {
   changes_total: number;
   registrar_changes: number;
   nameserver_changes: number;
-  registrant_changes: number;
-  expiry_changes: number;
+  privacy_changes: number;
 }
 
 export interface WhoisHistory {

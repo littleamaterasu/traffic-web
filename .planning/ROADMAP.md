@@ -148,7 +148,7 @@ Plans:
 **Success Criteria** (what must be TRUE):
 
   1. Researcher sees organic and paid keyword count, estimated traffic and traffic value (worldwide) from SE Ranking, labeled as SE Ranking estimates distinct from TabAPI
-  2. Researcher sees advertiser competitors (domains bidding on overlapping keywords) with common-keyword counts
+  2. Researcher can click "Tải đối thủ quảng cáo" to load advertiser competitors (domains bidding on overlapping keywords) with common-keyword counts; never fetched automatically because it costs SE Ranking credits
   3. Researcher can click "Tải backlink" to load a backlinks summary (backlinks, referring domains, dofollow share, domain inlink rank, top anchors); it is never fetched automatically because it costs ~100 credits
   4. Without `SE_RANKING_API_KEY`, or when SE Ranking fails or has no data, the section shows a Vietnamese empty/error state and the rest of the report renders; the key never reaches the browser
   5. Repeated lookups within 24h are served from cache with in-flight dedup
@@ -158,7 +158,7 @@ Plans:
 Plans:
 
 - [x] 08-01-PLAN.md — Types, SE Ranking client with four per-slice cached stores, tests (wave 1)
-- [x] 08-02-PLAN.md — `GET /api/seranking` (overview/keywords/competitors) and on-demand `GET /api/seranking/backlinks` routes with tests (wave 2)
+- [x] 08-02-PLAN.md — `GET /api/seranking` (overview; competitors later moved to on-demand `/api/seranking/competitors`) and on-demand `GET /api/seranking/backlinks` routes with tests (wave 2)
 - [x] 08-03-PLAN.md — `SerankingPanel` component with "Tải backlink" on-demand button, fixtures and tests (wave 2)
 - [x] 08-04-PLAN.md — Wire panel into dashboard, fix affected tests, sanitize `.env.example` (wave 3)
 

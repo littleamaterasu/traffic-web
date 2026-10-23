@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { clearSeRankingCache } from "@/lib/seranking";
 import type {
-  SeRankingAdKeyword,
   SeRankingCompetitor,
   SeRankingOverview,
 } from "@/types/seranking";
@@ -11,7 +10,6 @@ import { GET } from "./route";
 const API_KEY = "test-key-123";
 
 const OVERVIEW_PATH = "/v1/domain/overview/worldwide";
-const KEYWORDS_PATH = "/v1/domain/keywords";
 const COMPETITORS_PATH = "/v1/domain/competitors";
 
 const overviewUpstream = {
@@ -20,25 +18,6 @@ const overviewUpstream = {
   ],
   adv: [{ source: "worldwide", keywords_count: 335, traffic_sum: 2_916, price_sum: 658.06 }],
 };
-
-const keywordsUpstream = [
-  {
-    keyword: "hosting giá rẻ",
-    position: 1,
-    volume: 8_100,
-    cpc: 0.42,
-    competition: 0.36,
-    url: "https://acme.com/khuyen-mai",
-    block: "top",
-    block_position: 1,
-    snippet_title: "Hosting giá rẻ cho người mới",
-    snippet_description: "Miễn phí SSL, giảm 80% tháng đầu.",
-    snippet_display_url: "acme.com",
-    traffic: 1_204,
-    price: 505.68,
-    difficulty: 34,
-  },
-];
 
 const competitorsUpstream = [
   {
@@ -56,25 +35,6 @@ const expectedOverview: SeRankingOverview = {
   organic: { keywords_count: 534_575, traffic_sum: 531_195, price_sum: 274_754.56 },
   paid: { keywords_count: 335, traffic_sum: 2_916, price_sum: 658.06 },
 };
-
-const expectedKeywords: SeRankingAdKeyword[] = [
-  {
-    keyword: "hosting giá rẻ",
-    position: 1,
-    volume: 8_100,
-    cpc: 0.42,
-    competition: 0.36,
-    url: "https://acme.com/khuyen-mai",
-    block: "top",
-    block_position: 1,
-    snippet_title: "Hosting giá rẻ cho người mới",
-    snippet_description: "Miễn phí SSL, giảm 80% tháng đầu.",
-    snippet_display_url: "acme.com",
-    traffic: 1_204,
-    price: 505.68,
-    difficulty: 34,
-  },
-];
 
 const expectedCompetitors: SeRankingCompetitor[] = [
   {
@@ -174,11 +134,10 @@ describe("GET /api/seranking", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("trả 200 đủ ba slice khi mọi upstream OK, mặc định source us, không gọi backlinks và không lộ key", async () => {
+  it("trả 200 đủ hai slice khi mọi upstream OK, mặc định source us, không gọi backlinks và không lộ key", async () => {
     vi.stubEnv("SE_RANKING_API_KEY", API_KEY);
     const fetchMock = fetchRouter({
       [OVERVIEW_PATH]: overviewUpstream,
-      [KEYWORDS_PATH]: keywordsUpstream,
       [COMPETITORS_PATH]: competitorsUpstream,
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -192,12 +151,12 @@ describe("GET /api/seranking", () => {
       domain: "acme.com",
       source: "us",
       overview: { data: expectedOverview, error: null },
-      keywords: { data: expectedKeywords, error: null },
       competitors: { data: expectedCompetitors, error: null },
     });
-    const keywordCall = fetchMock.mock.calls.find(([url]) => String(url).includes(KEYWORDS_PATH));
-    expect(String(keywordCall?.[0])).toContain("source=us");
-    expect(String(keywordCall?.[0])).toContain("limit=10");
+    const competitorsCall = fetchMock.mock.calls.find(([url]) => String(url).includes(COMPETITORS_PATH));
+    expect(String(competitorsCall?.[0])).toContain("source=us");
+    expect(String(competitorsCall?.[0])).toContain("limit=10");
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("/domain/keywords"))).toBe(false);
     expect(fetchMock.mock.calls.length).toBeGreaterThan(0);
     for (const [url] of fetchMock.mock.calls) {
       expect(String(url)).not.toContain("/backlinks/");
@@ -205,12 +164,11 @@ describe("GET /api/seranking", () => {
     expect(JSON.stringify(body)).not.toContain(API_KEY);
   });
 
-  it("trả 200 với slice keywords lỗi khi upstream keywords trả 500, các slice khác vẫn có dữ liệu", async () => {
+  it("trả 200 với slice competitors lỗi khi upstream competitors trả 500, slice overview vẫn có dữ liệu", async () => {
     vi.stubEnv("SE_RANKING_API_KEY", API_KEY);
     const fetchMock = fetchRouter({
       [OVERVIEW_PATH]: overviewUpstream,
-      [KEYWORDS_PATH]: 500,
-      [COMPETITORS_PATH]: competitorsUpstream,
+      [COMPETITORS_PATH]: 500,
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -219,18 +177,16 @@ describe("GET /api/seranking", () => {
 
     expect(response.status).toBe(200);
     expect(body.overview).toEqual({ data: expectedOverview, error: null });
-    expect(body.keywords).toEqual({
+    expect(body.competitors).toEqual({
       data: null,
       error: { code: "seranking_error", message: "Không thể lấy dữ liệu SE Ranking lúc này." },
     });
-    expect(body.competitors).toEqual({ data: expectedCompetitors, error: null });
   });
 
-  it("trả 200 với cả ba slice lỗi invalid_api_key khi upstream trả 401 cho mọi endpoint", async () => {
+  it("trả 200 với cả hai slice lỗi invalid_api_key khi upstream trả 401 cho mọi endpoint", async () => {
     vi.stubEnv("SE_RANKING_API_KEY", API_KEY);
     const fetchMock = fetchRouter({
       [OVERVIEW_PATH]: 401,
-      [KEYWORDS_PATH]: 401,
       [COMPETITORS_PATH]: 401,
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -243,7 +199,6 @@ describe("GET /api/seranking", () => {
       data: null,
       error: { code: "invalid_api_key", message: "SE_RANKING_API_KEY không hợp lệ hoặc đã hết hạn." },
     });
-    expect(body.keywords.error?.code).toBe("invalid_api_key");
     expect(body.competitors.error?.code).toBe("invalid_api_key");
   });
 });

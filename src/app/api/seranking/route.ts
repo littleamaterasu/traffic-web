@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   SeRankingApiError,
   getSeRankingCompetitors,
-  getSeRankingKeywords,
   getSeRankingOverview,
 } from "@/lib/seranking";
 import { DomainValidationError, normalizeDomain } from "@/lib/domain";
@@ -57,9 +56,8 @@ export async function GET(request: NextRequest) {
     return errorResponse(500, "missing_api_key", "Chưa cấu hình SE_RANKING_API_KEY trên máy chủ.");
   }
 
-  const [overview, keywords, competitors] = await Promise.allSettled([
+  const [overview, competitors] = await Promise.allSettled([
     getSeRankingOverview(domain, apiKey),
-    getSeRankingKeywords(domain, source, LIST_LIMIT, apiKey),
     getSeRankingCompetitors(domain, source, LIST_LIMIT, apiKey),
   ]);
 
@@ -68,7 +66,6 @@ export async function GET(request: NextRequest) {
       domain,
       source,
       overview: toSlice(overview),
-      keywords: toSlice(keywords),
       competitors: toSlice(competitors),
     },
     { headers: { "Cache-Control": "private, max-age=0, must-revalidate" } },

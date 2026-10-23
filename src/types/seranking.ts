@@ -9,23 +9,6 @@ export interface SeRankingOverview {
   paid: SeRankingMetric | null;
 }
 
-export interface SeRankingAdKeyword {
-  keyword: string | null;
-  position: number | null;
-  volume: number | null;
-  cpc: number | null;
-  competition: number | null;
-  url: string | null;
-  block: string | null;
-  block_position: number | null;
-  snippet_title: string | null;
-  snippet_description: string | null;
-  snippet_display_url: string | null;
-  traffic: number | null;
-  price: number | null;
-  difficulty: number | null;
-}
-
 export interface SeRankingCompetitor {
   domain: string | null;
   common_keywords: number | null;
@@ -69,7 +52,6 @@ export interface SeRankingResponse {
   domain: string;
   source: string;
   overview: SeRankingSlice<SeRankingOverview>;
-  keywords: SeRankingSlice<SeRankingAdKeyword[]>;
   competitors: SeRankingSlice<SeRankingCompetitor[]>;
 }
 

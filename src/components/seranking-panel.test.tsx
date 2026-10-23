@@ -102,12 +102,11 @@ describe("SerankingPanel", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Chưa cấu hình SE_RANKING_API_KEY trên máy chủ.",
     );
-    expect(screen.queryByRole("heading", { name: "Từ khóa quảng cáo & mẫu quảng cáo" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Đối thủ quảng cáo" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Backlink (SE Ranking)" })).not.toBeInTheDocument();
   });
 
-  it("hiển thị đủ bốn panel SE Ranking với badge nguồn và toàn cầu khi dữ liệu sẵn sàng", async () => {
+  it("hiển thị đủ ba panel SE Ranking với badge nguồn và toàn cầu khi dữ liệu sẵn sàng", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(serankingFixture)));
 
     render(<SerankingPanel domain="acme.com" />);
@@ -115,12 +114,12 @@ describe("SerankingPanel", () => {
     expect(await screen.findByText("534.575")).toBeInTheDocument();
 
     expect(screen.getByRole("heading", { level: 2, name: "SEO & quảng cáo trả phí (SE Ranking)" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2, name: "Từ khóa quảng cáo & mẫu quảng cáo" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Từ khóa quảng cáo & mẫu quảng cáo" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Đối thủ quảng cáo" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Backlink (SE Ranking)" })).toBeInTheDocument();
     expect(screen.getByText("SE Ranking · toàn cầu")).toBeInTheDocument();
-    expect(screen.getAllByText(/SE Ranking/).length).toBeGreaterThanOrEqual(4);
-    expect(screen.getAllByRole("button", { name: /Giải thích bảng/ })).toHaveLength(4);
+    expect(screen.getAllByText(/SE Ranking/).length).toBeGreaterThanOrEqual(3);
+    expect(screen.getAllByRole("button", { name: /Giải thích bảng/ })).toHaveLength(3);
   });
 
   it("hiển thị sáu thẻ chỉ số tổng quan với định dạng vi-VN/en-US", async () => {
@@ -175,63 +174,6 @@ describe("SerankingPanel", () => {
     ).toBeInTheDocument();
   });
 
-  it("chỉ hiển thị tối đa 10 mẫu quảng cáo từ fixture 11 dòng", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(serankingFixture)));
-
-    render(<SerankingPanel domain="acme.com" />);
-    await screen.findByText("Từ khóa quảng cáo & mẫu quảng cáo");
-
-    expect(screen.getAllByRole("listitem")).toHaveLength(10);
-    expect(screen.getByText("từ khóa 1")).toBeInTheDocument();
-    expect(screen.getByText("từ khóa 10")).toBeInTheDocument();
-    expect(screen.queryByText("từ khóa 11")).not.toBeInTheDocument();
-  });
-
-  it("hiển thị đầy đủ thông tin mẫu quảng cáo: tiêu đề, URL hiển thị, mô tả, từ khóa, khối, CPC, lượt tìm kiếm, vị trí", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(serankingFixture)));
-
-    render(<SerankingPanel domain="acme.com" />);
-    await screen.findByText("Quảng cáo mẫu 1");
-
-    expect(screen.getByText("acme.com/landing-1")).toBeInTheDocument();
-    expect(screen.getByText("Mô tả quảng cáo mẫu 1.")).toBeInTheDocument();
-    expect(screen.getAllByText("Từ khóa")).toHaveLength(10);
-    expect(screen.getByText("từ khóa 1")).toBeInTheDocument();
-    expect(screen.getAllByText("CPC")).toHaveLength(10);
-    expect(screen.getAllByText("$1.25")).toHaveLength(10);
-    expect(screen.getAllByText("Lượt tìm kiếm")).toHaveLength(10);
-    expect(screen.getByText("2.000")).toBeInTheDocument();
-    expect(screen.getByText("#1 · Trên cùng")).toBeInTheDocument();
-    expect(screen.getByText("#2 · Cuối trang")).toBeInTheDocument();
-  });
-
-  it("render liên kết trang đích chỉ khi URL là http/https, với rel=noopener noreferrer và target=_blank", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(serankingFixture)));
-
-    const { container } = render(<SerankingPanel domain="acme.com" />);
-    const links = await screen.findAllByRole("link", { name: /Trang đích/ });
-
-    expect(links).toHaveLength(9);
-    expect(links[0]).toHaveAttribute("href", "https://acme.com/landing-1");
-    expect(links[0]).toHaveAttribute("rel", "noopener noreferrer");
-    expect(links[0]).toHaveAttribute("target", "_blank");
-    expect(screen.queryByRole("link", { name: /khong-http/ })).not.toBeInTheDocument();
-    expect(screen.getByText(/acme\.com\/khong-http/)).toBeInTheDocument();
-    expect(container.querySelectorAll("a[target='_blank']")).toHaveLength(9);
-  });
-
-  it("hiển thị EmptyCell khi không có từ khóa quảng cáo", async () => {
-    const payload = clone(serankingFixture);
-    payload.keywords = { data: [], error: null };
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(payload)));
-
-    render(<SerankingPanel domain="acme.com" />);
-
-    expect(
-      await screen.findByText("Không có từ khóa quảng cáo nào được ghi nhận cho tên miền này."),
-    ).toBeInTheDocument();
-  });
-
   it("hiển thị bảng đối thủ dùng responsive-table với td data-label", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(serankingFixture)));
 
@@ -262,10 +204,6 @@ describe("SerankingPanel", () => {
 
   it("hiển thị lỗi của từng slice trong panel tương ứng trong khi các panel khác vẫn renders", async () => {
     const payload = clone(serankingFixture);
-    payload.keywords = {
-      data: null,
-      error: { code: "seranking_error", message: "Không lấy được từ khóa quảng cáo." },
-    };
     payload.competitors = {
       data: null,
       error: { code: "rate_limited", message: "SE Ranking đang quá tải, thử lại sau." },
@@ -275,8 +213,7 @@ describe("SerankingPanel", () => {
     render(<SerankingPanel domain="acme.com" />);
     await screen.findByText("SEO & quảng cáo trả phí (SE Ranking)");
 
-    expect(screen.getAllByRole("alert")).toHaveLength(2);
-    expect(screen.getByText("Không lấy được từ khóa quảng cáo.")).toBeInTheDocument();
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
     expect(screen.getByText("SE Ranking đang quá tải, thử lại sau.")).toBeInTheDocument();
     expect(screen.getByText("534.575")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Tải backlink" })).toBeInTheDocument();

@@ -5,7 +5,6 @@ import { EmptyCell, MetricCard, Panel } from "@/components/panel";
 import type { PanelInfo } from "@/components/panel";
 import { formatCompactNumber, formatCurrency, formatNumber, formatPercent } from "@/lib/format";
 import type {
-  SeRankingAdKeyword,
   SeRankingBacklinks,
   SeRankingBacklinksResponse,
   SeRankingCompetitor,
@@ -14,17 +13,11 @@ import type {
   SeRankingSlice,
 } from "@/types/seranking";
 
-const LIST_LIMIT = 10;
 const ANCHOR_LIMIT = 5;
 const REQUEST_TIMEOUT_MS = 20_000;
 const FALLBACK_ERROR_MESSAGE = "Không thể tải dữ liệu SE Ranking lúc này.";
 const TIMEOUT_MESSAGE = "Yêu cầu mất quá nhiều thời gian. Hãy kiểm tra kết nối và thử lại.";
 const NGROK_HEADERS = { "ngrok-skip-browser-warning": "true" };
-
-const BLOCK_LABELS: Record<string, string> = {
-  top: "Trên cùng",
-  bottom: "Cuối trang",
-};
 
 const SERANKING_INFO = {
   overview: {
@@ -39,18 +32,6 @@ const SERANKING_INFO = {
       { label: "Giá trị traffic quảng cáo", meaning: "Giá trị ước tính (USD) của traffic quảng cáo, tính theo CPC của từng từ khóa." },
     ],
     note: "SE Ranking là nguồn dữ liệu bổ sung độc lập với TabAPI và tính trên phạm vi toàn cầu; đây là các con số ước tính nên có thể khác với TabAPI và thay đổi theo thời điểm thu thập.",
-  },
-  keywords: {
-    summary:
-      "Các từ khóa quảng cáo trả phí mà SE Ranking ghi nhận cho tên miền, kèm mẫu quảng cáo thật (tiêu đề, URL hiển thị, mô tả) đang chạy trên Google.",
-    metrics: [
-      { label: "Mẫu quảng cáo", meaning: "Quảng cáo văn bản SE Ranking thu thập được: tiêu đề, URL hiển thị và mô tả." },
-      { label: "Từ khóa", meaning: "Cụm từ kích hoạt quảng cáo." },
-      { label: "Vị trí & khối", meaning: "Vị trí quảng cáo trên trang kết quả; Trên cùng là khối phía trên kết quả tự nhiên, Cuối trang là khối cuối trang." },
-      { label: "CPC", meaning: "Chi phí mỗi lượt click ước tính (USD) của từ khóa." },
-      { label: "Lượt tìm kiếm", meaning: "Volume tìm kiếm mỗi tháng ước tính của từ khóa." },
-    ],
-    note: "Danh sách hiển thị tối đa 10 mẫu quảng cáo. Từ khóa và mẫu quảng cáo là số liệu ước tính của SE Ranking, có thể khác với TabAPI và thay đổi theo thời điểm thu thập.",
   },
   competitors: {
     summary:
@@ -107,7 +88,6 @@ function isSeRankingResponse(body: unknown): body is SeRankingResponse {
     typeof candidate.domain === "string" &&
     typeof candidate.source === "string" &&
     isSliceShape(candidate.overview) &&
-    isSliceShape(candidate.keywords) &&
     isSliceShape(candidate.competitors)
   );
 }
@@ -116,10 +96,6 @@ function isSeRankingBacklinksResponse(body: unknown): body is SeRankingBacklinks
   if (typeof body !== "object" || body === null) return false;
   const candidate = body as Record<string, unknown>;
   return typeof candidate.domain === "string" && isSliceShape(candidate.backlinks);
-}
-
-function blockLabel(block: string | null): string {
-  return (block != null && BLOCK_LABELS[block]) || "—";
 }
 
 function formatDofollowShare(data: SeRankingBacklinks): string {
@@ -138,51 +114,6 @@ function SliceState({ message }: { message: string }) {
         {message}
       </p>
     </div>
-  );
-}
-
-function AdCard({ ad }: { ad: SeRankingAdKeyword }) {
-  const landingUrl =
-    typeof ad.url === "string" && (ad.url.startsWith("http://") || ad.url.startsWith("https://"))
-      ? ad.url
-      : null;
-
-  return (
-    <li className="border-2 border-[#171710] bg-[#fffdf4] p-3 shadow-[3px_3px_0_#171710]">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-        <span className="border-2 border-[#171710] bg-[#ffdb1f] px-1.5 py-0.5 font-mono text-[10px] font-black">
-          #{formatNumber(ad.position)} · {blockLabel(ad.block)}
-        </span>
-        <span className="break-all font-mono text-[11px] font-bold text-[#5e5b4d]">
-          {ad.snippet_display_url ?? "—"}
-        </span>
-      </div>
-      <h4 className="mt-2 break-words text-sm font-black">{ad.snippet_title ?? "—"}</h4>
-      <p className="mt-1 break-words text-xs font-bold leading-snug">{ad.snippet_description ?? "—"}</p>
-      <dl className="mt-2 grid grid-cols-3 gap-2 text-xs">
-        <div>
-          <dt className="font-bold uppercase text-[#5e5b4d]">Từ khóa</dt>
-          <dd className="break-words font-black">{ad.keyword ?? "—"}</dd>
-        </div>
-        <div>
-          <dt className="font-bold uppercase text-[#5e5b4d]">CPC</dt>
-          <dd className="font-mono font-black">{formatCurrency(ad.cpc)}</dd>
-        </div>
-        <div>
-          <dt className="font-bold uppercase text-[#5e5b4d]">Lượt tìm kiếm</dt>
-          <dd className="font-mono font-black">{formatNumber(ad.volume)}</dd>
-        </div>
-      </dl>
-      <div className="mt-2">
-        {landingUrl ? (
-          <a href={landingUrl} target="_blank" rel="noopener noreferrer" className="font-black underline">
-            Trang đích ↗
-          </a>
-        ) : (
-          <p className="break-all font-bold text-[#5e5b4d]">Trang đích: {ad.url ?? "—"}</p>
-        )}
-      </div>
-    </li>
   );
 }
 
@@ -239,30 +170,6 @@ function OverviewPanel({ slice }: { slice: SeRankingSlice<SeRankingOverview> }) 
         </div>
       ) : (
         <EmptyCell>SE Ranking chưa có dữ liệu tổng quan cho tên miền này.</EmptyCell>
-      )}
-    </Panel>
-  );
-}
-
-function KeywordsPanel({ slice }: { slice: SeRankingSlice<SeRankingAdKeyword[]> }) {
-  const ads = slice.data?.slice(0, LIST_LIMIT) ?? [];
-
-  return (
-    <Panel
-      title="Từ khóa quảng cáo & mẫu quảng cáo"
-      badge="Nguồn: SE Ranking"
-      info={SERANKING_INFO.keywords}
-    >
-      {slice.error ? (
-        <SliceState message={slice.error.message} />
-      ) : ads.length ? (
-        <ul className="space-y-3 p-4 sm:p-5">
-          {ads.map((ad, index) => (
-            <AdCard key={`${index}-${ad.keyword ?? ""}`} ad={ad} />
-          ))}
-        </ul>
-      ) : (
-        <EmptyCell>Không có từ khóa quảng cáo nào được ghi nhận cho tên miền này.</EmptyCell>
       )}
     </Panel>
   );
@@ -514,7 +421,6 @@ export function SerankingPanel({ domain }: { domain: string }) {
       ) : (
         <>
           <OverviewPanel slice={view.data.overview} />
-          <KeywordsPanel slice={view.data.keywords} />
           <CompetitorsPanel slice={view.data.competitors} />
           <BacklinksPanel domain={domain} />
         </>

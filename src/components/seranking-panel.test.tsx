@@ -2,19 +2,19 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  serankingFixture,
+  serankingAdsFixture,
   serankingBacklinksFixture,
   serankingCompetitorsFixture,
 } from "@/test/seranking-fixture";
 import type {
+  SeRankingAdsResponse,
   SeRankingBacklinksResponse,
   SeRankingCompetitorsResponse,
-  SeRankingResponse,
 } from "@/types/seranking";
 import { SerankingPanel } from "./seranking-panel";
 
 type FetchPayload =
-  | SeRankingResponse
+  | SeRankingAdsResponse
   | SeRankingBacklinksResponse
   | SeRankingCompetitorsResponse
   | Record<string, unknown>;
@@ -30,52 +30,195 @@ function jsonResponse(body: FetchPayload, ok = true) {
 describe("SerankingPanel", () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it("gọi /api/seranking với domain, header ngrok-skip-browser-warning và AbortSignal khi mount", () => {
-    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(serankingFixture));
+  it("không gọi fetch khi mount và hiển thị ba phần cùng ba nút tải", () => {
+    const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
     render(<SerankingPanel domain="acme.com" />);
 
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getByRole("heading", { level: 2, name: "Mẫu quảng cáo & trang đích (SE Ranking)" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Đối thủ quảng cáo" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Backlink (SE Ranking)" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tải mẫu quảng cáo" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tải đối thủ quảng cáo" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tải backlink" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /Giải thích bảng/ })).toHaveLength(3);
+  });
+
+  it("hiển thị dòng giải thích credits và badge nguồn cho mẫu quảng cáo", () => {
+    vi.stubGlobal("fetch", vi.fn());
+
+    render(<SerankingPanel domain="acme.com" />);
+
+    expect(screen.getByText(/Mẫu quảng cáo và trang đích do SE Ranking cung cấp/)).toHaveTextContent(
+      "tốn credits của tài khoản SE Ranking",
+    );
+    expect(screen.getByText("Nguồn: SE Ranking · cơ sở dữ liệu us")).toBeInTheDocument();
+  });
+
+  it("bấm Tải mẫu quảng cáo gọi đúng một lần /api/seranking/ads và hiển thị tối đa 10 thẻ", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(serankingAdsFixture));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<SerankingPanel domain="acme.com" />);
+    await user.click(screen.getByRole("button", { name: "Tải mẫu quảng cáo" }));
+
+    const list = await screen.findByRole("list", { name: "Mẫu quảng cáo" });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/seranking?domain=acme.com",
+      "/api/seranking/ads?domain=acme.com",
       expect.objectContaining({
         headers: { "ngrok-skip-browser-warning": "true" },
         signal: expect.any(AbortSignal),
       }),
     );
+    expect(within(list).getAllByRole("listitem")).toHaveLength(10);
+    expect(within(list).getByText("từ khóa 10")).toBeInTheDocument();
+    expect(within(list).queryByText("từ khóa 11")).not.toBeInTheDocument();
+    expect(within(list).getAllByText("Trên cùng").length).toBeGreaterThan(0);
+    expect(within(list).getAllByText("Cuối trang").length).toBeGreaterThan(0);
+    expect(within(list).getByText("Vị trí 1")).toBeInTheDocument();
+    expect(within(list).getByText("Mô tả quảng cáo 1")).toBeInTheDocument();
+    expect(within(list).getByText("acme.com/trang-1")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Tải mẫu quảng cáo" })).not.toBeInTheDocument();
   });
 
-  it("hiển thị trạng thái đang tải với role=status và nội dung tiếng Việt nhắc đến SE Ranking", async () => {
-    let resolveFetch: (value: ReturnType<typeof jsonResponse>) => void = () => {};
+  it("làm sạch tiêu đề dính URL, chỉ link http(s) mới là thẻ a với rel an toàn, không hiển thị volume/CPC", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(serankingAdsFixture)));
+
+    const { container } = render(<SerankingPanel domain="acme.com" />);
+    await user.click(screen.getByRole("button", { name: "Tải mẫu quảng cáo" }));
+    const list = await screen.findByRole("list", { name: "Mẫu quảng cáo" });
+
+    expect(within(list).getByText("Giày chạy bộ giá tốt - Acme")).toBeInTheDocument();
+    expect(within(list).queryByText(/https:\/\/www\.acme\.com/)).not.toBeInTheDocument();
+
+    const link = within(list).getByRole("link", { name: "https://acme.com/trang-1" });
+    expect(link).toHaveAttribute("href", "https://acme.com/trang-1");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+
+    expect(within(list).getByText("acme.com/trang-2", { selector: "span" })).toBeInTheDocument();
+    expect(within(list).queryByRole("link", { name: "acme.com/trang-2" })).not.toBeInTheDocument();
+    expect(within(list).getAllByRole("link")).toHaveLength(9);
+
+    expect(container).not.toHaveTextContent(/volume/i);
+    expect(container).not.toHaveTextContent(/cpc/i);
+  });
+
+  it("vô hiệu nút và hiển thị role=status trong khi đang tải mẫu quảng cáo", async () => {
+    const user = userEvent.setup();
+    let resolveAds: (value: ReturnType<typeof jsonResponse>) => void = () => {};
     vi.stubGlobal(
       "fetch",
       vi.fn().mockImplementation(
         () =>
           new Promise((resolve) => {
-            resolveFetch = resolve as typeof resolveFetch;
+            resolveAds = resolve as typeof resolveAds;
           }),
       ),
     );
 
     render(<SerankingPanel domain="acme.com" />);
+    await user.click(screen.getByRole("button", { name: "Tải mẫu quảng cáo" }));
 
-    expect(screen.getByRole("status")).toHaveTextContent("SE Ranking");
+    expect(screen.getByRole("status")).toHaveTextContent("Đang tải mẫu quảng cáo từ SE Ranking");
+    expect(screen.getByRole("button", { name: "Tải mẫu quảng cáo" })).toBeDisabled();
 
-    resolveFetch(jsonResponse(serankingFixture));
-    await screen.findByText("SEO & quảng cáo trả phí (SE Ranking)");
+    resolveAds(jsonResponse(serankingAdsFixture));
+    await screen.findByRole("list", { name: "Mẫu quảng cáo" });
   });
 
-  it("gọi lại /api/seranking khi domain thay đổi và mã hóa domain trong URL", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(serankingFixture));
+  it("hiển thị EmptyCell khi không có mẫu quảng cáo", async () => {
+    const user = userEvent.setup();
+    const payload = clone(serankingAdsFixture);
+    payload.ads = { data: [], error: null };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(payload)));
+
+    render(<SerankingPanel domain="acme.com" />);
+    await user.click(screen.getByRole("button", { name: "Tải mẫu quảng cáo" }));
+
+    expect(
+      await screen.findByText("SE Ranking chưa ghi nhận mẫu quảng cáo nào cho tên miền này."),
+    ).toBeInTheDocument();
+  });
+
+  it("lỗi HTTP khi tải mẫu quảng cáo hiển thị alert, nút Thử lại và thử lại thành công", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({ error: { code: "missing_api_key", message: "Thiếu key." } }, false),
+      )
+      .mockResolvedValueOnce(jsonResponse(serankingAdsFixture));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<SerankingPanel domain="acme.com" />);
+    await user.click(screen.getByRole("button", { name: "Tải mẫu quảng cáo" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Thiếu key.");
+    expect(screen.getByRole("button", { name: "Tải đối thủ quảng cáo" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Thử lại" }));
+    expect(await screen.findByRole("list", { name: "Mẫu quảng cáo" })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("lỗi slice mẫu quảng cáo hiển thị thông điệp máy chủ trong role=alert", async () => {
+    const user = userEvent.setup();
+    const failing = clone(serankingAdsFixture);
+    failing.ads = {
+      data: null,
+      error: { code: "rate_limited", message: "SE Ranking đang quá tải, thử lại sau." },
+    };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(failing)));
+
+    render(<SerankingPanel domain="acme.com" />);
+    await user.click(screen.getByRole("button", { name: "Tải mẫu quảng cáo" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("SE Ranking đang quá tải, thử lại sau.");
+    expect(screen.getByRole("button", { name: "Thử lại" })).toBeInTheDocument();
+  });
+
+  it("đáp ứng sai dạng hiển thị lỗi fallback, lỗi mạng hiển thị thông báo tiếng Việt", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ khong_dung: true }))
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<SerankingPanel domain="acme.com" />);
+    await user.click(screen.getByRole("button", { name: "Tải mẫu quảng cáo" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Không thể tải dữ liệu SE Ranking lúc này.");
+
+    await user.click(screen.getByRole("button", { name: "Thử lại" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Không thể tải dữ liệu SE Ranking lúc này.");
+  });
+
+  it("đổi domain đưa panel mẫu quảng cáo về trạng thái idle và mã hóa domain trong URL", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(serankingAdsFixture));
     vi.stubGlobal("fetch", fetchMock);
 
     const { rerender } = render(<SerankingPanel domain="acme.com" />);
-    await screen.findByText("SEO & quảng cáo trả phí (SE Ranking)");
+    await user.click(screen.getByRole("button", { name: "Tải mẫu quảng cáo" }));
+    await screen.findByRole("list", { name: "Mẫu quảng cáo" });
 
     rerender(<SerankingPanel domain="other.com/path" />);
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+
+    expect(await screen.findByRole("button", { name: "Tải mẫu quảng cáo" })).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "Mẫu quảng cáo" })).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "Tải mẫu quảng cáo" }));
     expect(fetchMock).toHaveBeenLastCalledWith(
-      "/api/seranking?domain=other.com%2Fpath",
+      "/api/seranking/ads?domain=other.com%2Fpath",
       expect.objectContaining({
         headers: { "ngrok-skip-browser-warning": "true" },
         signal: expect.any(AbortSignal),
@@ -83,116 +226,13 @@ describe("SerankingPanel", () => {
     );
   });
 
-  it("hủy yêu cầu đang chờ khi component unmount", () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockImplementation(() => new Promise(() => {})),
-    );
-
-    const { unmount } = render(<SerankingPanel domain="acme.com" />);
-    expect(fetch).toHaveBeenCalled();
-
-    unmount();
-
-    const signal = (vi.mocked(fetch).mock.calls[0][1] as { signal: AbortSignal }).signal;
-    expect(signal.aborted).toBe(true);
-  });
-
-  it("hiển thị alert với thông điệp máy chủ khi thiếu key (missing_api_key)", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
-        jsonResponse(
-          { error: { code: "missing_api_key", message: "Chưa cấu hình SE_RANKING_API_KEY trên máy chủ." } },
-          false,
-        ),
-      ),
-    );
-
-    render(<SerankingPanel domain="acme.com" />);
-
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Chưa cấu hình SE_RANKING_API_KEY trên máy chủ.",
-    );
-    expect(screen.queryByRole("heading", { name: "Đối thủ quảng cáo" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Backlink (SE Ranking)" })).not.toBeInTheDocument();
-  });
-
-  it("hiển thị đủ ba panel SE Ranking với badge nguồn và toàn cầu khi dữ liệu sẵn sàng", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(serankingFixture)));
-
-    render(<SerankingPanel domain="acme.com" />);
-
-    expect(await screen.findByText("534.575")).toBeInTheDocument();
-
-    expect(screen.getByRole("heading", { level: 2, name: "SEO & quảng cáo trả phí (SE Ranking)" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Từ khóa quảng cáo & mẫu quảng cáo" })).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2, name: "Đối thủ quảng cáo" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2, name: "Backlink (SE Ranking)" })).toBeInTheDocument();
-    expect(screen.getByText("SE Ranking · toàn cầu")).toBeInTheDocument();
-    expect(screen.getAllByText(/SE Ranking/).length).toBeGreaterThanOrEqual(3);
-    expect(screen.getAllByRole("button", { name: /Giải thích bảng/ })).toHaveLength(3);
-  });
-
-  it("hiển thị sáu thẻ chỉ số tổng quan với định dạng vi-VN/en-US", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(serankingFixture)));
-
-    render(<SerankingPanel domain="acme.com" />);
-    await screen.findByText("SEO & quảng cáo trả phí (SE Ranking)");
-
-    expect(screen.getByText("Từ khóa tự nhiên")).toBeInTheDocument();
-    expect(screen.getByText("534.575")).toBeInTheDocument();
-    expect(screen.getByText("Traffic tự nhiên")).toBeInTheDocument();
-    expect(screen.getByText("531,2 N")).toBeInTheDocument();
-    expect(screen.getByText("Giá trị traffic tự nhiên")).toBeInTheDocument();
-    expect(screen.getByText("$274,754.56")).toBeInTheDocument();
-    expect(screen.getByText("Từ khóa quảng cáo")).toBeInTheDocument();
-    expect(screen.getByText("335")).toBeInTheDocument();
-    expect(screen.getByText("Traffic quảng cáo")).toBeInTheDocument();
-    expect(screen.getByText("2,9 N")).toBeInTheDocument();
-    expect(screen.getByText("Giá trị traffic quảng cáo")).toBeInTheDocument();
-    expect(screen.getByText("$658.06")).toBeInTheDocument();
-  });
-
-  it("hiển thị — cho chỉ số null trong tổng quan", async () => {
-    const payload = clone(serankingFixture);
-    payload.overview = {
-      data: {
-        organic: { keywords_count: null, traffic_sum: null, price_sum: null },
-        paid: { keywords_count: 335, traffic_sum: 2916, price_sum: 658.06 },
-      },
-      error: null,
-    };
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(payload)));
-
-    render(<SerankingPanel domain="acme.com" />);
-    await screen.findByText("SEO & quảng cáo trả phí (SE Ranking)");
-
-    expect(screen.getByText("Từ khóa tự nhiên").closest("div")).toHaveTextContent("—");
-    expect(screen.getByText("Traffic tự nhiên").closest("div")).toHaveTextContent("—");
-    expect(screen.getByText("Giá trị traffic tự nhiên").closest("div")).toHaveTextContent("—");
-    expect(screen.getByText("335")).toBeInTheDocument();
-  });
-
-  it("hiển thị EmptyCell tiếng Việt khi tổng quan thiếu cả organic lẫn paid", async () => {
-    const payload = clone(serankingFixture);
-    payload.overview = { data: { organic: null, paid: null }, error: null };
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(payload)));
-
-    render(<SerankingPanel domain="acme.com" />);
-
-    expect(
-      await screen.findByText("SE Ranking chưa có dữ liệu tổng quan cho tên miền này."),
-    ).toBeInTheDocument();
-  });
-
-  it("không gọi /api/seranking/competitors khi mount và hiển thị nút Tải đối thủ quảng cáo cùng dòng giải thích credits", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(serankingFixture));
+  it("không gọi /api/seranking/competitors khi mount và hiển thị nút Tải đối thủ quảng cáo cùng dòng giải thích credits", () => {
+    const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
     render(<SerankingPanel domain="acme.com" />);
 
-    expect(await screen.findByRole("button", { name: "Tải đối thủ quảng cáo" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tải đối thủ quảng cáo" })).toBeInTheDocument();
     expect(screen.getByText(/Danh sách đối thủ quảng cáo do SE Ranking cung cấp/)).toHaveTextContent(
       "tốn credits của tài khoản SE Ranking",
     );
@@ -204,17 +244,14 @@ describe("SerankingPanel", () => {
 
   it("bấm Tải đối thủ quảng cáo gọi đúng một lần /api/seranking/competitors và hiển thị bảng responsive-table với data-label", async () => {
     const user = userEvent.setup();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(serankingFixture))
-      .mockResolvedValueOnce(jsonResponse(serankingCompetitorsFixture));
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(serankingCompetitorsFixture));
     vi.stubGlobal("fetch", fetchMock);
 
     const { container } = render(<SerankingPanel domain="acme.com" />);
-    await user.click(await screen.findByRole("button", { name: "Tải đối thủ quảng cáo" }));
+    await user.click(screen.getByRole("button", { name: "Tải đối thủ quảng cáo" }));
     await screen.findByText("rival-one.com");
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenLastCalledWith(
       "/api/seranking/competitors?domain=acme.com",
       expect.objectContaining({
@@ -236,19 +273,16 @@ describe("SerankingPanel", () => {
   it("vô hiệu nút và hiển thị role=status trong khi đang tải đối thủ", async () => {
     const user = userEvent.setup();
     let resolveCompetitors: (value: ReturnType<typeof jsonResponse>) => void = () => {};
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(serankingFixture))
-      .mockImplementationOnce(
-        () =>
-          new Promise((resolve) => {
-            resolveCompetitors = resolve as typeof resolveCompetitors;
-          }),
-      );
+    const fetchMock = vi.fn().mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveCompetitors = resolve as typeof resolveCompetitors;
+        }),
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     render(<SerankingPanel domain="acme.com" />);
-    await user.click(await screen.findByRole("button", { name: "Tải đối thủ quảng cáo" }));
+    await user.click(screen.getByRole("button", { name: "Tải đối thủ quảng cáo" }));
 
     expect(screen.getByRole("status")).toHaveTextContent("Đang tải danh sách đối thủ từ SE Ranking");
     expect(screen.getByRole("button", { name: "Tải đối thủ quảng cáo" })).toBeDisabled();
@@ -261,13 +295,10 @@ describe("SerankingPanel", () => {
     const user = userEvent.setup();
     const payload = clone(serankingCompetitorsFixture);
     payload.competitors = { data: [], error: null };
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValueOnce(jsonResponse(serankingFixture)).mockResolvedValueOnce(jsonResponse(payload)),
-    );
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(payload)));
 
     render(<SerankingPanel domain="acme.com" />);
-    await user.click(await screen.findByRole("button", { name: "Tải đối thủ quảng cáo" }));
+    await user.click(screen.getByRole("button", { name: "Tải đối thủ quảng cáo" }));
 
     expect(
       await screen.findByText("Chưa phát hiện đối thủ quảng cáo nào cho tên miền này."),
@@ -285,16 +316,14 @@ describe("SerankingPanel", () => {
       "fetch",
       vi
         .fn()
-        .mockResolvedValueOnce(jsonResponse(serankingFixture))
         .mockResolvedValueOnce(jsonResponse(failing))
         .mockResolvedValueOnce(jsonResponse(serankingCompetitorsFixture)),
     );
 
     render(<SerankingPanel domain="acme.com" />);
-    await user.click(await screen.findByRole("button", { name: "Tải đối thủ quảng cáo" }));
+    await user.click(screen.getByRole("button", { name: "Tải đối thủ quảng cáo" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("SE Ranking đang quá tải, thử lại sau.");
-    expect(screen.getByText("534.575")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Tải backlink" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Thử lại" }));
@@ -309,14 +338,13 @@ describe("SerankingPanel", () => {
       "fetch",
       vi
         .fn()
-        .mockResolvedValueOnce(jsonResponse(serankingFixture))
         .mockResolvedValueOnce(
           jsonResponse({ error: { code: "missing_api_key", message: "Thiếu key." } }, false),
         ),
     );
 
     render(<SerankingPanel domain="acme.com" />);
-    await user.click(await screen.findByRole("button", { name: "Tải đối thủ quảng cáo" }));
+    await user.click(screen.getByRole("button", { name: "Tải đối thủ quảng cáo" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Thiếu key.");
     expect(screen.getByRole("button", { name: "Thử lại" })).toBeInTheDocument();
@@ -324,15 +352,11 @@ describe("SerankingPanel", () => {
 
   it("đổi domain đưa panel đối thủ về trạng thái idle, không còn bảng", async () => {
     const user = userEvent.setup();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(serankingFixture))
-      .mockResolvedValueOnce(jsonResponse(serankingCompetitorsFixture))
-      .mockResolvedValueOnce(jsonResponse(serankingFixture));
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(serankingCompetitorsFixture));
     vi.stubGlobal("fetch", fetchMock);
 
     const { rerender } = render(<SerankingPanel domain="acme.com" />);
-    await user.click(await screen.findByRole("button", { name: "Tải đối thủ quảng cáo" }));
+    await user.click(screen.getByRole("button", { name: "Tải đối thủ quảng cáo" }));
     await screen.findByText("rival-one.com");
 
     rerender(<SerankingPanel domain="other.com" />);
@@ -341,54 +365,26 @@ describe("SerankingPanel", () => {
     expect(screen.queryByText("rival-one.com")).not.toBeInTheDocument();
   });
 
-  it("đáp ứng không đúng dạng SeRankingResponse hiển thị lỗi fallback và không làm treo giao diện", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ khong_dung: true })));
-
-    render(<SerankingPanel domain="acme.com" />);
-
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Không thể tải dữ liệu SE Ranking lúc này.",
-    );
-  });
-
-  it("lỗi mạng hiển thị thông báo fallback tiếng Việt", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
-
-    render(<SerankingPanel domain="acme.com" />);
-
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Không thể tải dữ liệu SE Ranking lúc này.",
-    );
-  });
-
-  it("không bao giờ gọi /api/seranking/backlinks khi mount hay khi domain không đổi", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(serankingFixture));
+  it("không bao giờ gọi /api/seranking/backlinks khi mount hay khi domain không đổi", () => {
+    const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
     const { rerender } = render(<SerankingPanel domain="acme.com" />);
-    await screen.findByText("SEO & quảng cáo trả phí (SE Ranking)");
-
     rerender(<SerankingPanel domain="acme.com" />);
-    expect(fetchMock).toHaveBeenCalledWith("/api/seranking?domain=acme.com", expect.anything());
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    for (const call of fetchMock.mock.calls) {
-      expect(String(call[0])).not.toContain("/api/seranking/backlinks");
-    }
+
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("bấm Tải backlink gọi đúng một lần /api/seranking/backlinks và hiển thị tỷ lệ dofollow 75.0%", async () => {
     const user = userEvent.setup();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(serankingFixture))
-      .mockResolvedValueOnce(jsonResponse(serankingBacklinksFixture));
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(serankingBacklinksFixture));
     vi.stubGlobal("fetch", fetchMock);
 
     render(<SerankingPanel domain="acme.com" />);
-    await user.click(await screen.findByRole("button", { name: "Tải backlink" }));
+    await user.click(screen.getByRole("button", { name: "Tải backlink" }));
 
     expect(await screen.findByText("75.0%")).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenLastCalledWith(
       "/api/seranking/backlinks?domain=acme.com",
       expect.objectContaining({
@@ -406,19 +402,16 @@ describe("SerankingPanel", () => {
   it("vô hiệu nút và hiển thị role=status trong khi đang tải backlink", async () => {
     const user = userEvent.setup();
     let resolveBacklinks: (value: ReturnType<typeof jsonResponse>) => void = () => {};
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(serankingFixture))
-      .mockImplementationOnce(
-        () =>
-          new Promise((resolve) => {
-            resolveBacklinks = resolve as typeof resolveBacklinks;
-          }),
-      );
+    const fetchMock = vi.fn().mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveBacklinks = resolve as typeof resolveBacklinks;
+        }),
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     render(<SerankingPanel domain="acme.com" />);
-    const button = await screen.findByRole("button", { name: "Tải backlink" });
+    const button = screen.getByRole("button", { name: "Tải backlink" });
     await user.click(button);
 
     expect(button).toBeDisabled();
@@ -431,14 +424,11 @@ describe("SerankingPanel", () => {
 
   it("lỗi khi tải backlink hiển thị alert và nút Thử lại để thử lại", async () => {
     const user = userEvent.setup();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(serankingFixture))
-      .mockRejectedValueOnce(new TypeError("Network error"));
+    const fetchMock = vi.fn().mockRejectedValueOnce(new TypeError("Network error"));
     vi.stubGlobal("fetch", fetchMock);
 
     render(<SerankingPanel domain="acme.com" />);
-    await user.click(await screen.findByRole("button", { name: "Tải backlink" }));
+    await user.click(screen.getByRole("button", { name: "Tải backlink" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Không thể tải dữ liệu SE Ranking lúc này.",
@@ -448,7 +438,7 @@ describe("SerankingPanel", () => {
     fetchMock.mockResolvedValueOnce(jsonResponse(serankingBacklinksFixture));
     await user.click(screen.getByRole("button", { name: "Thử lại" }));
     expect(await screen.findByText("75.0%")).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("lỗi slice backlinks hiển thị alert với thông điệp máy chủ và nút Thử lại", async () => {
@@ -458,14 +448,10 @@ describe("SerankingPanel", () => {
       data: null,
       error: { code: "insufficient_credits", message: "Tài khoản SE Ranking không đủ credits." },
     };
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(serankingFixture))
-      .mockResolvedValueOnce(jsonResponse(errorBacklinks));
-    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(errorBacklinks)));
 
     render(<SerankingPanel domain="acme.com" />);
-    await user.click(await screen.findByRole("button", { name: "Tải backlink" }));
+    await user.click(screen.getByRole("button", { name: "Tải backlink" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Tài khoản SE Ranking không đủ credits.",
@@ -478,14 +464,10 @@ describe("SerankingPanel", () => {
     const user = userEvent.setup();
     const nullBacklinks = clone(serankingBacklinksFixture);
     nullBacklinks.backlinks = { data: null, error: null };
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(serankingFixture))
-      .mockResolvedValueOnce(jsonResponse(nullBacklinks));
-    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(nullBacklinks)));
 
     render(<SerankingPanel domain="acme.com" />);
-    await user.click(await screen.findByRole("button", { name: "Tải backlink" }));
+    await user.click(screen.getByRole("button", { name: "Tải backlink" }));
 
     expect(
       await screen.findByText("SE Ranking chưa có dữ liệu backlink cho tên miền này."),
@@ -504,14 +486,10 @@ describe("SerankingPanel", () => {
         refdomains: 10 + index,
       }));
     }
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(serankingFixture))
-      .mockResolvedValueOnce(jsonResponse(payload));
-    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(payload)));
 
     render(<SerankingPanel domain="acme.com" />);
-    await user.click(await screen.findByRole("button", { name: "Tải backlink" }));
+    await user.click(screen.getByRole("button", { name: "Tải backlink" }));
 
     const anchorList = await screen.findByRole("list", { name: "Anchor hàng đầu" });
     expect(within(anchorList).getAllByRole("listitem")).toHaveLength(5);
@@ -521,31 +499,19 @@ describe("SerankingPanel", () => {
 
   it("đặt lại về nút Tải backlink khi domain thay đổi và không tự gọi lại backlinks", async () => {
     const user = userEvent.setup();
-    const fetchMock = vi.fn(async (...args: unknown[]) => {
-      const url = String(args[0]);
-      if (url.includes("/api/seranking/backlinks")) {
-        return jsonResponse(serankingBacklinksFixture);
-      }
-      return jsonResponse(serankingFixture);
-    });
+    const fetchMock = vi.fn(async () => jsonResponse(serankingBacklinksFixture));
     vi.stubGlobal("fetch", fetchMock);
 
     const { rerender } = render(<SerankingPanel domain="acme.com" />);
-    await user.click(await screen.findByRole("button", { name: "Tải backlink" }));
+    await user.click(screen.getByRole("button", { name: "Tải backlink" }));
     await screen.findByText("75.0%");
-
-    const backlinkCalls = () =>
-      fetchMock.mock.calls.filter((call) => String(call[0]).includes("/api/seranking/backlinks"));
-    expect(backlinkCalls()).toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
 
     rerender(<SerankingPanel domain="other.com" />);
-    await waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith("/api/seranking?domain=other.com", expect.anything()),
-    );
 
     const resetButton = await screen.findByRole("button", { name: "Tải backlink" });
     expect(resetButton).toBeEnabled();
     expect(screen.queryByText("75.0%")).not.toBeInTheDocument();
-    expect(backlinkCalls()).toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

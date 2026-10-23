@@ -1,8 +1,9 @@
 import type {
+  SeRankingAdKeyword,
+  SeRankingAdsResponse,
   SeRankingBacklinksResponse,
   SeRankingCompetitor,
   SeRankingCompetitorsResponse,
-  SeRankingResponse,
 } from "@/types/seranking";
 
 const COMPETITOR_ROWS: SeRankingCompetitor[] = [
@@ -26,14 +27,27 @@ const COMPETITOR_ROWS: SeRankingCompetitor[] = [
   },
 ];
 
-export const serankingFixture: SeRankingResponse = {
+const AD_ROWS: SeRankingAdKeyword[] = Array.from({ length: 11 }, (_, index) => ({
+  keyword: `từ khóa ${index + 1}`,
+  position: index + 1,
+  block: index % 2 === 0 ? "top" : "bottom",
+  url: `https://acme.com/trang-${index + 1}`,
+  snippet_title: `Tiêu đề quảng cáo ${index + 1}`,
+  snippet_description: `Mô tả quảng cáo ${index + 1}`,
+  snippet_display_url: `acme.com/trang-${index + 1}`,
+}));
+
+AD_ROWS[1] = {
+  ...AD_ROWS[1],
+  url: "acme.com/trang-2",
+  snippet_title: "Giày chạy bộ giá tốt - Acme https://www.acme.com",
+};
+
+export const serankingAdsFixture: SeRankingAdsResponse = {
   domain: "acme.com",
   source: "us",
-  overview: {
-    data: {
-      organic: { keywords_count: 534575, traffic_sum: 531195, price_sum: 274754.56 },
-      paid: { keywords_count: 335, traffic_sum: 2916, price_sum: 658.06 },
-    },
+  ads: {
+    data: AD_ROWS,
     error: null,
   },
 };

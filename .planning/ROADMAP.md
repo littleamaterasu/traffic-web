@@ -213,13 +213,13 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 (Ph
 
 ### Phase 9: Domain age and WHOIS history via WhoisXML API
 
-**Goal**: The researcher sees how old the analyzed domain is and how stable it has been (registrar, nameserver, registrant-privacy and expiry changes over time), from the WhoisXML WHOIS and WHOIS History APIs, with credit-conscious on-demand history.
+**Goal**: The researcher sees how old the analyzed domain is and how stable it has been (registrar, nameserver and WHOIS-privacy-state changes over time), from the WhoisXML WHOIS and WHOIS History APIs, with credit-conscious on-demand history.
 **Depends on**: Phase 1 (cached-store factory); independent of Phases 2–8
 **Requirements**: VET-02, VET-06
 **Success Criteria** (what must be TRUE):
 
   1. Researcher sees domain creation date, age in years, registrar, expiry, last-updated, status flags, nameservers and a privacy indicator, plus a Vietnamese age verdict (<1 năm / 1–3 năm / >3 năm), from the WhoisXML WHOIS API (1 credit, cached 24h with in-flight dedup)
-  2. Researcher can click to load WHOIS history; the server first asks for the record count (preview) and refuses to buy more than a fixed cap of records, then returns a compact change timeline (registrar, nameserver, registrant-organization/privacy and expiry changes with dates) — never raw WHOIS text
+  2. Researcher can click to load WHOIS history; the server first asks for the record count (preview), refuses to buy more than a fixed cap of records, enforces a process-wide purchase budget of 10 purchases per rolling 24h to protect WhoisXML credits, then returns a compact change timeline listing registrar, nameserver and WHOIS-privacy-state changes with dates (expiry renewals and registrant text are intentionally excluded) — never raw WHOIS text
   3. Researcher sees a Vietnamese summary of volatility (number of changes, first record date) and honest empty/error states; the key never reaches the browser and a missing key or failure only affects this section
 
 **Plans**: TBD

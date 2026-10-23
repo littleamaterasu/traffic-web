@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCompactCurrency, formatCompactNumber, formatCurrency, formatDate, formatDuration, formatMonth, formatNumber, formatPercent } from "./format";
+import { formatCompactCurrency, formatCompactNumber, formatCurrency, formatDate, formatDateTime, formatDuration, formatMonth, formatNumber, formatPercent } from "./format";
 
 describe("format helpers", () => {
   it("định dạng số và giá trị rỗng", () => {
@@ -24,6 +24,15 @@ describe("format helpers", () => {
     expect(formatDate(null)).toBe("—");
     expect(formatDate("")).toBe("—");
     expect(formatDate("not-a-date")).toBe("—");
+  });
+
+  it("định dạng ngày giờ theo UTC", () => {
+    const text = formatDateTime("2026-10-23T14:05:00Z");
+    expect(text).toContain("23/10/2026");
+    expect(text).toContain("14:05");
+    expect(text.endsWith("UTC")).toBe(true);
+    expect(formatDateTime(null)).toBe("—");
+    expect(formatDateTime("not-a-date")).toBe("—");
   });
 
   it("định dạng tháng hợp lệ", () => {

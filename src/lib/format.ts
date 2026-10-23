@@ -20,6 +20,16 @@ const dateFormatter = new Intl.DateTimeFormat("vi-VN", {
   timeZone: "UTC",
 });
 
+const dateTimeFormatter = new Intl.DateTimeFormat("vi-VN", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+  timeZone: "UTC",
+});
+
 export function formatNumber(value: number | null | undefined): string {
   return value == null ? "—" : numberFormatter.format(value);
 }
@@ -53,6 +63,13 @@ export function formatDate(value: string | null | undefined): string {
   const time = Date.parse(value);
   if (Number.isNaN(time)) return "—";
   return dateFormatter.format(new Date(time));
+}
+
+export function formatDateTime(value: string | null | undefined): string {
+  if (!value) return "—";
+  const time = Date.parse(value);
+  if (Number.isNaN(time)) return "—";
+  return `${dateTimeFormatter.format(new Date(time))} UTC`;
 }
 
 export function formatMonth(value: string | null | undefined): string {

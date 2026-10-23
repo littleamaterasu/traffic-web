@@ -130,6 +130,7 @@ describe("GET /api/whois/history", () => {
     expect(serialized).not.toContain(API_KEY);
     expect(serialized).not.toContain("RAW-SENTINEL");
     expect(serialized).not.toContain("sentinel@example.test");
+    expect(serialized).not.toContain("Acme Co");
   });
 
   it("trả slice lỗi too_many_records và không mua dữ liệu khi vượt giới hạn 100 bản ghi", async () => {

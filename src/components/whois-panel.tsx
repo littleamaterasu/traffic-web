@@ -4,8 +4,18 @@ import { useEffect, useState } from "react";
 import { EmptyCell, MetricCard, Panel } from "@/components/panel";
 import type { PanelInfo } from "@/components/panel";
 import { formatDate, formatNumber } from "@/lib/format";
-import { WHOIS_FIELD_LABELS, summarizeVolatility } from "@/lib/whois-insights";
-import type { WhoisHistory, WhoisHistoryResponse, WhoisRecord, WhoisResponse } from "@/types/whois";
+import {
+  WHOIS_FIELD_LABELS,
+  WHOIS_PRIVACY_STATE_LABELS,
+  summarizeVolatility,
+} from "@/lib/whois-insights";
+import type {
+  WhoisChangeEvent,
+  WhoisHistory,
+  WhoisHistoryResponse,
+  WhoisRecord,
+  WhoisResponse,
+} from "@/types/whois";
 
 const REQUEST_TIMEOUT_MS = 20_000;
 const FALLBACK_ERROR_MESSAGE = "Không thể tải dữ liệu WhoisXML lúc này.";
@@ -102,6 +112,12 @@ async function requestRecord(domain: string, signal: AbortSignal): Promise<Recor
       message: isAbortError(cause) ?TIMEOUT_MESSAGE : FALLBACK_ERROR_MESSAGE,
     };
   }
+}
+
+function eventValue(event: WhoisChangeEvent, value: string | null): string {
+  if (value === null) return "—";
+  if (event.field !== "privacy") return value;
+  return value === "private" || value === "public" ? WHOIS_PRIVACY_STATE_LABELS[value] : "—";
 }
 
 function privacyValue(record: WhoisRecord): { value: string; hint: string } {
@@ -239,7 +255,7 @@ function HistorySection({ domain }: { domain: string }) {
                       {formatDate(event.date)} · {WHOIS_FIELD_LABELS[event.field]}
                     </p>
                     <p className="break-words font-bold">
-                      {event.from ?? "—"} → {event.to ?? "—"}
+                      {eventValue(event, event.from)} → {eventValue(event, event.to)}
                     </p>
                   </li>
                 ))}

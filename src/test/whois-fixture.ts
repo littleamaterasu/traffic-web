@@ -30,15 +30,14 @@ export const whoisHistoryFixture: WhoisHistoryResponse = {
         changes_total: 3,
         registrar_changes: 1,
         nameserver_changes: 1,
-        registrant_changes: 1,
-        expiry_changes: 0,
+        privacy_changes: 1,
       },
       events: [
         {
           date: "2024-06-10T00:00:00Z",
-          field: "registrant",
-          from: null,
-          to: "Domains By Proxy, LLC",
+          field: "privacy",
+          from: "public",
+          to: "private",
         },
         {
           date: "2021-09-15T00:00:00Z",

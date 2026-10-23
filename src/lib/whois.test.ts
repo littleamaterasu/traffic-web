@@ -289,6 +289,7 @@ describe("fetchWhoisHistory", () => {
       "EMAIL-SENTINEL",
       "PHONE-SENTINEL",
       "NAME-SENTINEL",
+      "Acme Co",
       API_KEY,
     ]) {
       expect(serialized).not.toContain(sentinel);

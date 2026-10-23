@@ -165,8 +165,10 @@ describe("WhoisPanel", () => {
     const items = within(timeline).getAllByRole("listitem");
     expect(items).toHaveLength(3);
     expect(items[0]).toHaveTextContent("10/06/2024");
-    expect(items[0]).toHaveTextContent("Chủ sở hữu");
-    expect(items[0]).toHaveTextContent("— → Domains By Proxy, LLC");
+    expect(items[0]).toHaveTextContent("Quyền riêng tư WHOIS");
+    expect(items[0]).toHaveTextContent("Công khai → Ẩn thông tin");
+    expect(items[0]).not.toHaveTextContent("public");
+    expect(items[0]).not.toHaveTextContent("private");
     expect(items[1]).toHaveTextContent("Name server");
     expect(items[1]).toHaveTextContent("ns1.old-host.net, ns2.old-host.net → ns1.acme.com, ns2.acme.com");
     expect(items[2]).toHaveTextContent("Nhà đăng ký");
@@ -184,8 +186,7 @@ describe("WhoisPanel", () => {
         changes_total: 0,
         registrar_changes: 0,
         nameserver_changes: 0,
-        registrant_changes: 0,
-        expiry_changes: 0,
+        privacy_changes: 0,
       },
       events: [],
       events_truncated: false,

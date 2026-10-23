@@ -55,14 +55,14 @@
 
 ## Pattern Overview
 
-**Overall:** Layered full-stack Next.js App Router app (Backend-For-Frontend proxy pattern) — a single client page calls a single server API route, which proxies a third-party API to keep the API key server-side.
+**Overall:** Layered full-stack Next.js App Router app (Backend-For-Frontend proxy pattern) — a single client page calls sibling server API routes (traffic, ads, seranking), which proxy third-party APIs to keep API keys server-side.
 
 **Key Characteristics:**
-- **BFF proxy:** `TABAPI_KEY` is read only in `src/app/api/traffic/route.ts:23` (server-side). The browser only ever talks to the internal `/api/traffic` endpoint — the key never reaches the client.
+- **BFF proxy:** `TABAPI_KEY` is read only in `src/app/api/traffic/route.ts:23` (server-side); `SERPAPI_KEY` only in the two `/api/ads*` routes; `SE_RANKING_API_KEY` only in the three `/api/seranking/*` routes. The browser only talks to internal endpoints — no key reaches the client.
 - **Shared type contract:** one file (`src/types/traffic.ts`) defines both the success payload (`TrafficResponse`) and error envelope (`ApiErrorBody`) used by server and client. Upstream TabAPI field names (snake_case) are passed through as-is.
-- **Pure lib modules:** `src/lib/config.ts`, `src/lib/domain.ts`, `src/lib/format.ts` are pure functions with no side effects — independently unit-testable. Only `src/lib/tabapi.ts` owns side effects (network + cache).
-- **No database, no state library:** caching is in-process memory (`Map` in `src/lib/tabapi.ts:12-13`); client state is local `useState` (`src/components/traffic-dashboard.tsx:419-422`).
-- **Single page, single endpoint:** the whole app is one route (`/`) and one API route (`/api/traffic`).
+- **Pure lib modules:** `src/lib/config.ts`, `src/lib/domain.ts`, `src/lib/format.ts` are pure functions with no side effects — independently unit-testable. The API client modules `src/lib/tabapi.ts`, `src/lib/ads-transparency.ts` and `src/lib/seranking.ts` own side effects (network + cache).
+- **No database, no state library:** caching is in-process memory via the shared `createCachedStore<T>()` factory in `src/lib/cached-store.ts` (used by `tabapi.ts`, `ads-transparency.ts`, `seranking.ts`); client state is local `useState` (`src/components/traffic-dashboard.tsx:419-422`).
+- **Single page, several BFF endpoints:** the whole app is one page route (`/`) and these API routes: `/api/traffic` (TabAPI, auto-fetched on search), `/api/ads` and `/api/ads/detail` (SerpAPI Transparency, click-to-load), `/api/seranking/ads`, `/api/seranking/competitors`, `/api/seranking/backlinks` (SE Ranking, click-to-load).
 
 ## Layers
 
@@ -109,9 +109,9 @@
 4. Domain normalized/validated — `normalizeDomain` at `src/lib/domain.ts:12`; failure throws `DomainValidationError` → 400 `invalid_domain` (`route.ts:18-21`)
 5. API key read from `process.env.TABAPI_KEY` — `route.ts:23-26`; missing → 500 `missing_api_key`
 6. `TRAFFIC_MONTHS` parsed by `getTrafficMonths` — `src/lib/config.ts:5`; invalid → 500 `invalid_configuration` (`route.ts:28-34`)
-7. Cache-aware service call — `getTraffic` at `src/lib/tabapi.ts:87`: cache key `"{domain}:{months}"`; hit → return cached; miss → dedupe against `inFlightRequests` (line 100-101) then call `fetchTrafficFromTabApi` (line 42)
+7. Cache-aware service call — `getTraffic` in `src/lib/tabapi.ts` via `trafficStore.get()`: cache key `"{domain}:{months}"`; hit → return cached; miss → in-flight dedup inside `createCachedStore`, then call `fetchTrafficFromTabApi`
 8. Upstream HTTP call — `GET https://tabapi.com/api/v1/domains/{domain}/traffic?months=N` with `Authorization: Bearer` header, `cache: "no-store"` — `src/lib/tabapi.ts:51-60`
-9. Success cached for 24h (TTL `CACHE_TTL_MS`, max 100 entries with prune/eviction) — `src/lib/tabapi.ts:103-109` and `pruneCache` (line 75)
+9. Success cached for 24h (store default TTL, max 100 entries with prune/eviction) — `src/lib/cached-store.ts`
 10. JSON `TrafficResponse` returned to client with `Cache-Control: private, max-age=0, must-revalidate` — `src/app/api/traffic/route.ts:38-42`
 11. Client parses body as `TrafficResponse | ApiErrorBody` — `src/components/traffic-dashboard.tsx:444-450`; success sets `data` state, rendered by `<Results data={...} />` (line 562)
 
@@ -123,7 +123,7 @@
 
 **State Management:**
 - Client: four `useState` hooks (`domain`, `data`, `error`, `loading`) in `TrafficDashboard` — `src/components/traffic-dashboard.tsx:419-422`. No context, no reducer, no external store.
-- Server: two module-level `Map`s — `successCache` and `inFlightRequests` — `src/lib/tabapi.ts:12-13`. In-process only; cleared on server restart (also exposes `clearTrafficCache()` for tests).
+- Server: module-level `createCachedStore` instances (`trafficStore` in `src/lib/tabapi.ts`, two in `src/lib/ads-transparency.ts`, three in `src/lib/seranking.ts`), each with its own success cache and in-flight map. In-process only; cleared on server restart (`clearTrafficCache()`, `clearAdsCache()`, `clearSeRankingCache()` for tests).
 
 ## Key Abstractions
 
@@ -162,6 +162,7 @@
 - Location: `src/app/api/traffic/route.ts`
 - Triggers: `GET /api/traffic?domain=<domain-or-url>` from the dashboard
 - Responsibilities: validation, config, proxying TabAPI, cache, error mapping
+- Sibling BFF routes: `src/app/api/ads/route.ts`, `src/app/api/ads/detail/route.ts` (SerpAPI, `SERPAPI_KEY`), `src/app/api/seranking/{ads,competitors,backlinks}/route.ts` (SE Ranking, `SE_RANKING_API_KEY`); all triggered by buttons in `AdsPanel` / `SerankingPanel`, not by the search itself
 
 **Root layout:**
 - Location: `src/app/layout.tsx`
@@ -172,7 +173,7 @@
 ## Architectural Constraints
 
 - **Threading/runtime:** API route pinned to Node.js runtime (`export const runtime = "nodejs"` — `src/app/api/traffic/route.ts:7`); required because `src/lib/domain.ts:1` imports `node:net`.
-- **Global state:** module-level mutable caches `successCache` / `inFlightRequests` in `src/lib/tabapi.ts:12-13`. Singletons per process — cache is lost on restart and not shared across instances. In dev, Next.js hot reload can re-instantiate these modules, resetting the cache.
+- **Global state:** module-level cached stores (`createCachedStore`) in `src/lib/tabapi.ts`, `src/lib/ads-transparency.ts`, `src/lib/seranking.ts`. Singletons per process — cache is lost on restart and not shared across instances. In dev, Next.js hot reload can re-instantiate these modules, resetting the cache.
 - **Env-var coupling:** `TRAFFIC_MONTHS` is read at request time by `src/lib/config.ts:5` (with default in both `page.tsx` and the API route) and by the client only as a display value (`trafficMonths` prop, `src/components/traffic-dashboard.tsx:418`). `TABAPI_KEY` must exist only server-side.
 - **No persistence layer:** everything is in-memory. Restarting the server clears the cache; nothing is stored.
 - **Single-locale UI:** all user-facing strings are Vietnamese; formatters use `vi-VN` locale (`src/lib/format.ts`); `<html lang="vi">` in `src/app/layout.tsx:11`.
@@ -216,7 +217,7 @@
 **Logging:** none — no logger, no `console.*` in source. Silent failure with typed errors.
 **Validation:** domain validation in `src/lib/domain.ts` (URL parse + label regex + IP/localhost rejection); env config validation in `src/lib/config.ts`. No schema-validation library.
 **Authentication:** none for users (local tool). Bearer-token auth to TabAPI only, server-side (`src/lib/tabapi.ts:56`).
-**Caching:** 24h in-memory success cache + in-flight request deduplication — `src/lib/tabapi.ts:4-5, 12-13, 75-113`; HTTP response marked `private, max-age=0, must-revalidate` (`src/app/api/traffic/route.ts:40`).
+**Caching:** 24h in-memory success cache + in-flight request deduplication via `createCachedStore` (`src/lib/cached-store.ts`); HTTP response marked `private, max-age=0, must-revalidate` (`src/app/api/traffic/route.ts:40`).
 **Accessibility:** modal semantics (`role="dialog"`, `aria-modal`, `aria-labelledby`), `aria-live="polite"` results, Escape-to-close, focus outlines — `src/components/traffic-dashboard.tsx:91-158, 215` and `src/app/globals.css:39-43`.
 
 ---

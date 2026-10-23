@@ -2,9 +2,15 @@
 
 **Analysis Date:** 2026-10-13
 
-Scope: full repo (`D:\affiliate\traffic-web`). Small Next.js 16 app (~950 source lines across 10 files) that proxies TabAPI traffic data. No `TODO`/`FIXME`/`HACK`/`XXX` markers exist anywhere in `src/` — concerns below were found by reading the code. A `.env.local` file is present in the repo root (correctly ignored by `.gitignore` via `.env*` / `!.env.example`); its contents were never read. `TABAPI_KEY` and `TRAFFIC_MONTHS` are the only env vars referenced, both read server-side only (`src/app/api/traffic/route.ts:23`, `src/lib/config.ts:5`).
+Scope: full repo (`D:\affiliate\traffic-web`). Small Next.js 16 app (~950 source lines across 10 files) that proxies TabAPI traffic data. No `TODO`/`FIXME`/`HACK`/`XXX` markers exist anywhere in `src/` — concerns below were found by reading the code. A `.env.local` file is present in the repo root (correctly ignored by `.gitignore` via `.env*` / `!.env.example`); its contents were never read. `TABAPI_KEY` and `TRAFFIC_MONTHS` were the only env vars at analysis time; `SERPAPI_KEY` (`/api/ads*`) and `SE_RANKING_API_KEY` (`/api/seranking/*`) have since been added, all read server-side only (`.env.example` also lists `WHOIS_API_KEY`, which no `src/` file reads).
 
 ## Tech Debt
+
+**Transparency feature built outside the GSD workflow:**
+- Issue: commit 300b113 "integrate google transparency" added `/api/ads`, `/api/ads/detail`, `src/components/ads-panel.tsx`, `src/lib/ads-transparency.ts`, `src/lib/ads-insights.ts` and `src/types/ads.ts` with no phase plan; `ads-panel.tsx` and the two `/api/ads*` routes have no test files.
+- Files: the files above, `.planning/ROADMAP.md`, `.planning/REQUIREMENTS.md`
+- Impact: planning drift versus Phases 3 and 6; ADLG-02 (Winning Ad Ratio) and ADLG-03 (ASI) are only partial and ADLG-04 (fallback) is unmet; requirement text needs re-check against actual behavior.
+- Fix approach: re-plan Phases 3 and 6 against the delivered code and add tests for the ads panel and routes.
 
 **Monolithic dashboard component:**
 - Issue: `src/components/traffic-dashboard.tsx` (534 lines, ~30KB) contains everything: `InfoButton` modal, `Panel`, `MetricCard`, `EmptyCell`, `Results` (5 rendering panels + derived calculations), `TrafficDashboard` (form, fetch logic, loading/error states), plus the 13-channel `SOURCE_LABELS` table and the large Vietnamese `PANEL_INFO` content object.
@@ -80,6 +86,12 @@ Scope: full repo (`D:\affiliate\traffic-web`). Small Next.js 16 app (~950 source
 
 ## Security Considerations
 
+**API keys previously committed in git history:**
+- Risk: real API keys were committed in `.env.example` earlier (values blanked 2026-10-22 in Phase 8 plan 04) and remain in git history.
+- Files: `.env.example` (git history)
+- Current mitigation: current `.env.example` holds blank assignments only; `.env.local` is gitignored.
+- Recommendations: rotate all keys that were ever committed (rotation required); do not record key values or fragments anywhere.
+
 **No authentication or rate limiting on `/api/traffic`:**
 - Risk: Anyone who can reach the server can issue arbitrary domain lookups; every cache miss spends TabAPI credits from the owner's account.
 - Files: `src/app/api/traffic/route.ts` (the only API route), `src/lib/tabapi.ts` (cache is the only throttle)
@@ -101,7 +113,7 @@ Scope: full repo (`D:\affiliate\traffic-web`). Small Next.js 16 app (~950 source
 ## Performance Bottlenecks
 
 **Process-local cache only:**
-- Problem: The 24h cache (`successCache` Map, `src/lib/tabapi.ts:12`) is per Node process, capped at 100 entries, and cleared on restart; the in-flight dedup map (`src/lib/tabapi.ts:13`) has the same scope.
+- Problem: The 24h caches (`createCachedStore` instances, `src/lib/cached-store.ts`) are per Node process, capped at 100 entries, and cleared on restart; the in-flight dedup map (`src/lib/tabapi.ts:13`) has the same scope.
 - Files: `src/lib/tabapi.ts`
 - Cause: Deliberate simplicity for a local single-user tool.
 - Improvement path: Fine for current use; if multi-user or serverless deployment happens, move to a shared store (Redis, or even a JSON file cache) keyed by `domain:months` (`src/lib/tabapi.ts:94`). Also note expired entries are only pruned when a new successful fetch triggers `pruneCache` (`src/lib/tabapi.ts:105`) — bounded by `MAX_CACHE_ENTRIES`, so harmless, but the eviction logic (oldest-inserted eviction at lines 80–84) has no test.
@@ -143,6 +155,12 @@ Scope: full repo (`D:\affiliate\traffic-web`). Small Next.js 16 app (~950 source
 - Migration plan: Add a Dependabot/Renovate config and a CI workflow (see Missing Critical Features) so updates arrive as testable PRs.
 
 ## Missing Critical Features
+
+**`SERPAPI_KEY` hard dependency with no fallback:**
+- Problem: `/api/ads` and `/api/ads/detail` return 500 `missing_api_key` when `SERPAPI_KEY` is absent; the panel shows that error and there is no SERP-synthesis fallback (ADLG-04 unmet).
+- Files: `src/app/api/ads/route.ts`, `src/app/api/ads/detail/route.ts`, `src/components/ads-panel.tsx`
+- Blocks: any ad-longevity view without a SerpApi account; each page or detail load costs one SerpApi call.
+- Fix approach: decide at Phase 3/6 re-planning whether to add a fallback or accept the dependency.
 
 **No CI pipeline:**
 - Problem: No `.github/` directory exists; `npm run lint`, `npm test`, `npm run build` are only run manually.

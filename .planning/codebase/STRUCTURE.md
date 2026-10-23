@@ -17,38 +17,57 @@ traffic-web/
 │   │   │   │   ├── route.ts     # GET /api/traffic — TabAPI proxy endpoint
 │   │   │   │   └── route.test.ts
 │   │   │   ├── ads/
-│   │   │   │   ├── route.ts     # GET /api/ads — SerpAPI ads proxy endpoint
+│   │   │   │   ├── route.ts     # GET /api/ads — SerpAPI Transparency proxy (added outside GSD, 300b113)
 │   │   │   │   └── detail/
 │   │   │   │       └── route.ts # GET /api/ads/detail — SerpAPI ad-detail proxy
-│   │   │   └── seranking/
-│   │   │       ├── route.ts     # GET /api/seranking — SE Ranking 3-slice envelope (never calls backlinks)
-│   │   │       ├── route.test.ts
+│   │   │   └── seranking/       # no seranking/route.ts (removed 2026-10-23); all routes are on demand
+│   │   │       ├── ads/
+│   │   │       │   ├── route.ts     # GET /api/seranking/ads — ad copy for paid keywords
+│   │   │       │   └── route.test.ts
+│   │   │       ├── competitors/
+│   │   │       │   ├── route.ts     # GET /api/seranking/competitors — advertiser competitors
+│   │   │       │   └── route.test.ts
 │   │   │       └── backlinks/
-│   │   │           ├── route.ts     # GET /api/seranking/backlinks — on-demand ~100-credit backlinks summary
+│   │   │           ├── route.ts     # GET /api/seranking/backlinks — ~100-credit backlinks summary
 │   │   │           └── route.test.ts
 │   │   ├── globals.css          # Tailwind v4 import + brutalist theme + responsive tables
 │   │   ├── layout.tsx           # Root layout (<html lang="vi">, metadata)
 │   │   └── page.tsx             # Home page (server component → TrafficDashboard)
 │   ├── components/              # Client components
-│   │   ├── traffic-dashboard.tsx    # Entire dashboard UI ("use client", 571 lines)
+│   │   ├── traffic-dashboard.tsx    # Dashboard UI ("use client"); renders AdsPanel and SerankingPanel after the traffic panels
 │   │   ├── traffic-dashboard.test.tsx
-│   │   ├── seranking-panel.tsx      # SE Ranking section (4 slices, on-demand backlinks; not yet wired)
+│   │   ├── panel.tsx                # Shared primitives (Panel, InfoButton, EmptyCell, MetricCard, PanelInfo)
+│   │   ├── panel.test.tsx
+│   │   ├── ads-panel.tsx            # Google Ads Transparency section (click-to-load, no test file)
+│   │   ├── seranking-panel.tsx      # SE Ranking section (ad copy, competitors, backlinks; each click-to-load)
 │   │   └── seranking-panel.test.tsx
-│   ├── lib/                     # Pure logic modules (side-effect-free except tabapi)
+│   ├── lib/                     # Logic modules (API clients tabapi/ads-transparency/seranking own network + caches)
+│   │   ├── ads-insights.ts      # Transparency summaries, grouping, timeline (ACTIVE_WINDOW_DAYS=7, LONG_RUNNING_DAYS=30)
+│   │   ├── ads-insights.test.ts
+│   │   ├── ads-transparency.ts  # SerpAPI client + cached stores (list, detail)
+│   │   ├── ads-transparency.test.ts
+│   │   ├── cached-store.ts      # createCachedStore<T>() — 24h TTL, in-flight dedup
+│   │   ├── cached-store.test.ts
 │   │   ├── config.ts            # TRAFFIC_MONTHS env parsing (default 3, range 3–12)
 │   │   ├── config.test.ts
 │   │   ├── domain.ts            # Domain normalization + validation
 │   │   ├── domain.test.ts
 │   │   ├── format.ts            # vi-VN/en-US number, %, duration, currency, month formatters
 │   │   ├── format.test.ts
-│   │   ├── tabapi.ts            # TabAPI HTTP client + 24h in-memory cache + dedup
+│   │   ├── seranking.ts         # SE Ranking client + three cached stores (keywords, competitors, backlinks)
+│   │   ├── seranking.test.ts
+│   │   ├── seranking-ad-title.ts # cleanAdTitle: strips trailing URL/breadcrumb from ad titles
+│   │   ├── seranking-ad-title.test.ts
+│   │   ├── tabapi.ts            # TabAPI HTTP client (cache via createCachedStore)
 │   │   └── tabapi.test.ts
 │   ├── test/
 │   │   ├── fixture.ts           # Shared TrafficResponse fixture for tests
-│   │   └── seranking-fixture.ts # Shared SeRankingResponse + SeRankingBacklinksResponse fixtures
+│   │   └── seranking-fixture.ts # Shared SE Ranking fixtures
 │   └── types/
+│       ├── ads.ts               # AdCreative, AdsResponse, AdDetail
+│       ├── seranking.ts         # SeRanking* contracts (ads, competitors, backlinks, slice envelope)
 │       └── traffic.ts           # Shared API contracts (TrafficResponse, ApiErrorBody)
-├── .env.example                 # Env template (TABAPI_KEY, TRAFFIC_MONTHS)
+├── .env.example                 # Env template (key names only, values blank)
 ├── .env.local                   # Local env file (gitignored — contains API key; never commit)
 ├── .gitignore
 ├── eslint.config.mjs            # ESLint 9 flat config (next core-web-vitals + typescript)
@@ -67,22 +86,22 @@ traffic-web/
 
 **`src/app/`:**
 - Purpose: Next.js App Router — file-based routing for pages and API route handlers
-- Contains: `layout.tsx`, `page.tsx`, `globals.css`, and `api/{traffic,ads,seranking}/route.ts`
-- Key files: `src/app/page.tsx` (only page), `src/app/api/traffic/route.ts`, `src/app/api/ads/route.ts` (+ `detail/`), `src/app/api/seranking/route.ts` (+ `backlinks/`) — sibling BFF endpoints
+- Contains: `layout.tsx`, `page.tsx`, `globals.css`, and `api/{traffic,ads,seranking}` route handlers
+- Key files: `src/app/page.tsx` (only page), `src/app/api/traffic/route.ts`, `src/app/api/ads/route.ts` (+ `detail/`), `src/app/api/seranking/{ads,competitors,backlinks}/route.ts` — sibling BFF endpoints
 
 **`src/components/`:**
 - Purpose: client-side React components
-- Contains: one component module `traffic-dashboard.tsx` ("use client") with internal private components (`Results`, `Panel`, `MetricCard`, `InfoButton`, `EmptyCell`) plus its test
-- Key files: `src/components/traffic-dashboard.tsx`, `src/components/seranking-panel.tsx` (standalone SE Ranking section built from `panel.tsx` primitives; fetches `/api/seranking` itself, backlinks strictly on click — not yet wired into the dashboard)
+- Contains: `traffic-dashboard.tsx` ("use client", private `Results`), shared primitives in `panel.tsx`, and the standalone sections `ads-panel.tsx` and `seranking-panel.tsx`
+- Key files: `src/components/traffic-dashboard.tsx` (renders `<AdsPanel>` and `<SerankingPanel>` keyed by domain inside `Results`), `src/components/ads-panel.tsx` and `src/components/seranking-panel.tsx` (each owns its fetch lifecycle; no `useEffect`, so nothing is fetched on mount)
 
 **`src/lib/`:**
 - Purpose: framework-agnostic logic modules — one concern per file, co-located tests
-- Contains: `config.ts` (env config), `domain.ts` (validation), `format.ts` (formatting), `tabapi.ts` (external API client + cache)
-- Key files: `src/lib/tabapi.ts` is the only module with side effects (network, module-level caches)
+- Contains: `config.ts` (env config), `domain.ts` (validation), `format.ts` (formatting), `cached-store.ts` (cache factory), `ads-insights.ts` (pure ad summaries), `tabapi.ts` / `ads-transparency.ts` / `seranking.ts` (external API clients + cached stores), `seranking-ad-title.ts` (title cleanup)
+- Key files: the three API client modules own the side effects (network, module-level cached stores)
 
 **`src/types/`:**
 - Purpose: shared TypeScript contracts between server and client layers
-- Contains: `src/types/traffic.ts` — `TrafficResponse`, `ApiErrorBody`, and nested shapes
+- Contains: `src/types/traffic.ts` — `TrafficResponse`, `ApiErrorBody`, and nested shapes; `src/types/ads.ts`; `src/types/seranking.ts`
 
 **`src/test/`:**
 - Purpose: cross-module test support (fixtures)
@@ -97,7 +116,7 @@ traffic-web/
 **Entry Points:**
 - `src/app/layout.tsx`: root layout — `<html lang="vi">`, metadata, global CSS import
 - `src/app/page.tsx`: home page — server component rendering `<TrafficDashboard trafficMonths={getTrafficMonths()} />`
-- `src/app/api/traffic/route.ts`: `GET /api/traffic?domain=...` — TabAPI BFF endpoint; siblings `src/app/api/ads/route.ts` (SerpAPI) and `src/app/api/seranking/route.ts` + `src/app/api/seranking/backlinks/route.ts` (SE Ranking; backlinks is the only route touching `/backlinks/summary`)
+- `src/app/api/traffic/route.ts`: `GET /api/traffic?domain=...` — TabAPI BFF endpoint; siblings `src/app/api/ads/route.ts` (+ `detail/`, SerpAPI) and `src/app/api/seranking/{ads,competitors,backlinks}/route.ts` (SE Ranking; backlinks is the only route touching `/backlinks/summary`)
 - `package.json:6-14`: CLI scripts (`dev`, `build`, `start`, `lint`, `test`)
 
 **Configuration:**
@@ -106,7 +125,7 @@ traffic-web/
 - `eslint.config.mjs`: flat config with `eslint-config-next/core-web-vitals` + `eslint-config-next/typescript`
 - `vitest.config.ts` + `vitest.setup.ts`: jsdom, globals, `@` alias, jest-dom matchers
 - `postcss.config.mjs`: Tailwind v4 PostCSS plugin
-- `.env.example`: template documenting `TABAPI_KEY` (required) and `TRAFFIC_MONTHS` (optional, 3–12, default 3)
+- `.env.example`: template with blank values for `TABAPI_KEY`, `TRAFFIC_MONTHS`, `SERPAPI_KEY`, `WHOIS_API_KEY` (not read anywhere in `src/`) and `SE_RANKING_API_KEY`
 - `.env.local`: local secrets (gitignored; presence noted only — never read or commit)
 
 **Core Logic:**
@@ -119,8 +138,9 @@ traffic-web/
 **Testing:**
 - `src/app/api/traffic/route.test.ts`: API route integration test
 - `src/components/traffic-dashboard.test.tsx`: component test
-- `src/components/seranking-panel.test.tsx`: SE Ranking section component test (26 Vietnamese tests, fetch mocked via `vi.stubGlobal`)
-- `src/lib/*.test.ts`: unit tests for each lib module (config, domain, format, tabapi)
+- `src/components/seranking-panel.test.tsx`: SE Ranking section component test (fetch mocked via `vi.stubGlobal`); `src/components/panel.test.tsx`: shared primitives
+- `src/app/api/seranking/{ads,competitors,backlinks}/route.test.ts`: SE Ranking route tests
+- `src/lib/*.test.ts`: unit tests for each lib module (ads-insights, ads-transparency, cached-store, config, domain, format, seranking, seranking-ad-title, tabapi); `ads-panel.tsx` and the `/api/ads*` routes have no test files
 - `src/test/fixture.ts`: shared `trafficFixture` (full `TrafficResponse` for `vercel.com`)
 
 ## Naming Conventions
@@ -136,7 +156,7 @@ traffic-web/
 
 **Code symbols:**
 - Components: PascalCase exports (`TrafficDashboard`, `Panel`, `MetricCard`, `InfoButton`)
-- Functions/variables: camelCase (`normalizeDomain`, `getTraffic`, `successCache`)
+- Functions/variables: camelCase (`normalizeDomain`, `getTraffic`, `trafficStore`)
 - Constants: SCREAMING_SNAKE_CASE (`DEFAULT_TRAFFIC_MONTHS`, `TABAPI_BASE_URL`, `CACHE_TTL_MS`, `PANEL_INFO`)
 - Types/interfaces: PascalCase (`TrafficResponse`, `ApiErrorBody`, `PanelInfo`)
 - API payload fields: snake_case, mirroring upstream TabAPI JSON (`traffic_sources`, `top_keywords`, `monthly_visits`) — keep this convention in `src/types/traffic.ts`
@@ -197,7 +217,7 @@ traffic-web/
 - Committed: Yes
 
 **`.env.local` / `.env.example`:**
-- Purpose: environment configuration (`TABAPI_KEY`, `TRAFFIC_MONTHS`)
+- Purpose: environment configuration (`TABAPI_KEY`, `TRAFFIC_MONTHS`, `SERPAPI_KEY`, `SE_RANKING_API_KEY`)
 - Generated: No — `.env.local` is copied from `.env.example` per README
 - Committed: `.env.local` is gitignored (`.gitignore` rule `.env*` with `!.env.example` exception); `.env.example` is committed
 

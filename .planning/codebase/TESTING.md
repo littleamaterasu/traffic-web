@@ -24,7 +24,7 @@ npm run test:watch  # vitest — watch mode
 npm run lint        # eslint . (companion quality gate)
 ```
 
-**Current state:** 6 test files, 37 tests, all passing (verified 2026-10-13). Suite duration ~40s; most time is jsdom environment startup, not the tests themselves.
+**Current state:** 16 test files, 136 tests, all passing (`npx vitest run`, verified 2026-10-23; originally 6 files / 37 tests on 2026-10-13). Test files: `src/app/api/traffic/route.test.ts`, `src/app/api/seranking/{ads,competitors,backlinks}/route.test.ts`, `src/components/{panel,seranking-panel,traffic-dashboard}.test.tsx`, `src/lib/{ads-insights,ads-transparency,cached-store,config,domain,format,seranking-ad-title,seranking,tabapi}.test.ts`. Not covered by tests: `src/components/ads-panel.tsx`, `src/app/api/ads/route.ts`, `src/app/api/ads/detail/route.ts`. Most suite time is jsdom environment startup.
 
 ## Test File Organization
 

@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { AdsPanel } from "@/components/ads-panel";
 import { SerankingPanel } from "@/components/seranking-panel";
+import { WhoisPanel } from "@/components/whois-panel";
 import { EmptyCell, MetricCard, Panel } from "@/components/panel";
 import type { PanelInfo } from "@/components/panel";
 import {
@@ -301,6 +302,7 @@ function Results({ data }: { data: TrafficResponse }) {
 
       <AdsPanel key={data.domain} domain={data.domain} />
       <SerankingPanel key={data.domain} domain={data.domain} />
+      <WhoisPanel key={data.domain} domain={data.domain} />
     </div>
   );
 }

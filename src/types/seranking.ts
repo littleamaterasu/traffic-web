@@ -1,14 +1,3 @@
-export interface SeRankingMetric {
-  keywords_count: number | null;
-  traffic_sum: number | null;
-  price_sum: number | null;
-}
-
-export interface SeRankingOverview {
-  organic: SeRankingMetric | null;
-  paid: SeRankingMetric | null;
-}
-
 export interface SeRankingCompetitor {
   domain: string | null;
   common_keywords: number | null;
@@ -48,10 +37,20 @@ export interface SeRankingSlice<T> {
   error: SeRankingSliceError | null;
 }
 
-export interface SeRankingResponse {
+export interface SeRankingAdKeyword {
+  keyword: string | null;
+  position: number | null;
+  block: "top" | "bottom" | null;
+  url: string | null;
+  snippet_title: string | null;
+  snippet_description: string | null;
+  snippet_display_url: string | null;
+}
+
+export interface SeRankingAdsResponse {
   domain: string;
   source: string;
-  overview: SeRankingSlice<SeRankingOverview>;
+  ads: SeRankingSlice<SeRankingAdKeyword[]>;
 }
 
 export interface SeRankingCompetitorsResponse {

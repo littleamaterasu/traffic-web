@@ -1,17 +1,15 @@
 import { createCachedStore } from "@/lib/cached-store";
 import type {
+  SeRankingAdKeyword,
   SeRankingAnchor,
   SeRankingBacklinks,
   SeRankingCompetitor,
-  SeRankingMetric,
-  SeRankingOverview,
 } from "@/types/seranking";
 
 const SERANKING_BASE_URL = "https://api.seranking.com/v1";
-const OVERVIEW_PATH = "/domain/overview/worldwide";
+const KEYWORDS_PATH = "/domain/keywords";
 const COMPETITORS_PATH = "/domain/competitors";
 const BACKLINKS_PATH = "/backlinks/summary";
-const CURRENCY = "USD";
 const KEYWORD_TYPE = "adv";
 
 export class SeRankingApiError extends Error {
@@ -25,15 +23,14 @@ export class SeRankingApiError extends Error {
   }
 }
 
-interface UpstreamOverviewEntry {
-  keywords_count?: number;
-  traffic_sum?: number;
-  price_sum?: number;
-}
-
-interface UpstreamOverview {
-  organic?: UpstreamOverviewEntry[];
-  adv?: UpstreamOverviewEntry[];
+interface UpstreamKeywordRow {
+  keyword?: string;
+  position?: number;
+  url?: string;
+  block?: string;
+  snippet_title?: string;
+  snippet_description?: string;
+  snippet_display_url?: string;
 }
 
 interface UpstreamCompetitorRow {
@@ -132,12 +129,15 @@ async function requestSeRanking<T>(
   return body as T;
 }
 
-function toMetric(entry: UpstreamOverviewEntry | undefined): SeRankingMetric | null {
-  if (!entry || typeof entry !== "object") return null;
+function toKeyword(raw: UpstreamKeywordRow): SeRankingAdKeyword {
   return {
-    keywords_count: num(entry.keywords_count),
-    traffic_sum: num(entry.traffic_sum),
-    price_sum: num(entry.price_sum),
+    keyword: str(raw.keyword),
+    position: num(raw.position),
+    block: raw.block === "top" || raw.block === "bottom" ? raw.block : null,
+    url: str(raw.url),
+    snippet_title: str(raw.snippet_title),
+    snippet_description: str(raw.snippet_description),
+    snippet_display_url: str(raw.snippet_display_url),
   };
 }
 
@@ -177,21 +177,21 @@ function toBacklinks(raw: UpstreamBacklinksEntry): SeRankingBacklinks {
   };
 }
 
-export async function fetchSeRankingOverview(
+export async function fetchSeRankingKeywords(
   domain: string,
+  source: string,
+  limit: number,
   apiKey: string,
   fetchImpl: typeof fetch = fetch,
-): Promise<SeRankingOverview> {
-  const body = await requestSeRanking<UpstreamOverview>(
-    OVERVIEW_PATH,
-    { domain, currency: CURRENCY },
+): Promise<SeRankingAdKeyword[]> {
+  const body = await requestSeRanking<UpstreamKeywordRow[]>(
+    KEYWORDS_PATH,
+    { domain, source, type: KEYWORD_TYPE, limit: String(limit) },
     apiKey,
     fetchImpl,
   );
-  return {
-    organic: toMetric(Array.isArray(body?.organic) ? body.organic[0] : undefined),
-    paid: toMetric(Array.isArray(body?.adv) ? body.adv[0] : undefined),
-  };
+  if (!Array.isArray(body)) return [];
+  return body.map(toKeyword);
 }
 
 export async function fetchSeRankingCompetitors(
@@ -226,17 +226,19 @@ export async function fetchSeRankingBacklinks(
   return toBacklinks(body.summary[0]);
 }
 
-const overviewStore = createCachedStore<SeRankingOverview>();
+const keywordsStore = createCachedStore<SeRankingAdKeyword[]>();
 const competitorsStore = createCachedStore<SeRankingCompetitor[]>();
 const backlinksStore = createCachedStore<SeRankingBacklinks | null>();
 
-export function getSeRankingOverview(
+export function getSeRankingKeywords(
   domain: string,
+  source: string,
+  limit: number,
   apiKey: string,
   fetchImpl: typeof fetch = fetch,
-): Promise<SeRankingOverview> {
-  return overviewStore.get(domain, () =>
-    fetchSeRankingOverview(domain, apiKey, fetchImpl),
+): Promise<SeRankingAdKeyword[]> {
+  return keywordsStore.get(`${domain}:${source}:${limit}`, () =>
+    fetchSeRankingKeywords(domain, source, limit, apiKey, fetchImpl),
   );
 }
 
@@ -263,7 +265,7 @@ export function getSeRankingBacklinks(
 }
 
 export function clearSeRankingCache(): void {
-  overviewStore.clear();
+  keywordsStore.clear();
   competitorsStore.clear();
   backlinksStore.clear();
 }

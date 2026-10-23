@@ -1,34 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SeRankingApiError, getSeRankingOverview } from "@/lib/seranking";
+import { SeRankingApiError, getSeRankingKeywords } from "@/lib/seranking";
 import { DomainValidationError, normalizeDomain } from "@/lib/domain";
 import type { ApiErrorBody } from "@/types/traffic";
 import type {
-  SeRankingResponse,
+  SeRankingAdKeyword,
+  SeRankingAdsResponse,
   SeRankingSlice,
-  SeRankingSliceError,
 } from "@/types/seranking";
 
 export const runtime = "nodejs";
 
 const SOURCE_PATTERN = /^[a-z]{2}$/;
 const DEFAULT_SOURCE = "us";
+const LIST_LIMIT = 10;
 
 function errorResponse(status: number, code: string, message: string) {
   return NextResponse.json<ApiErrorBody>({ error: { code, message } }, { status });
 }
 
-function toSlice<T>(result: PromiseSettledResult<T>): SeRankingSlice<T> {
-  if (result.status === "fulfilled") {
-    return { data: result.value, error: null };
+function toErrorSlice(reason: unknown): SeRankingSlice<SeRankingAdKeyword[]> {
+  if (reason instanceof SeRankingApiError) {
+    return { data: null, error: { code: reason.code, message: reason.message } };
   }
-  if (result.reason instanceof SeRankingApiError) {
-    return { data: null, error: { code: result.reason.code, message: result.reason.message } };
-  }
-  const fallback: SeRankingSliceError = {
-    code: "unexpected_error",
-    message: "Không thể lấy dữ liệu SE Ranking lúc này.",
+  return {
+    data: null,
+    error: { code: "unexpected_error", message: "Không thể lấy dữ liệu SE Ranking lúc này." },
   };
-  return { data: null, error: fallback };
 }
 
 export async function GET(request: NextRequest) {
@@ -51,14 +48,18 @@ export async function GET(request: NextRequest) {
     return errorResponse(500, "missing_api_key", "Chưa cấu hình SE_RANKING_API_KEY trên máy chủ.");
   }
 
-  const [overview] = await Promise.allSettled([getSeRankingOverview(domain, apiKey)]);
+  let ads: SeRankingSlice<SeRankingAdKeyword[]>;
+  try {
+    ads = {
+      data: await getSeRankingKeywords(domain, source, LIST_LIMIT, apiKey),
+      error: null,
+    };
+  } catch (error) {
+    ads = toErrorSlice(error);
+  }
 
-  return NextResponse.json<SeRankingResponse>(
-    {
-      domain,
-      source,
-      overview: toSlice(overview),
-    },
+  return NextResponse.json<SeRankingAdsResponse>(
+    { domain, source, ads },
     { headers: { "Cache-Control": "private, max-age=0, must-revalidate" } },
   );
 }

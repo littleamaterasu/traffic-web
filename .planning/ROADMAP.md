@@ -96,14 +96,12 @@ Plans:
 
 **Goal**: Lookups and researcher inputs survive restarts, and the report opens with a business-sustainability block (how old and stable is the domain, what do customers say) plus derived callouts computed from data already fetched.
 **Depends on**: Phase 4
-**Requirements**: PERS-01, PERS-02, VET-01, VET-02, VET-06, TRST-01, TRST-02
+**Requirements**: PERS-01, PERS-02, VET-01, TRST-01, TRST-02 (VET-02 and VET-06 moved to Phase 9, 2026-10-23: WhoisXML provides both the current record and real WHOIS history)
 **Success Criteria** (what must be TRUE):
 
   1. Researcher reopens a previously analyzed domain after a server restart and sees its saved snapshot and inputs
-  2. Researcher sees domain age, registrar, expiry, last-updated, nameservers and a Vietnamese age verdict from WHOIS/RDAP, cached and deduplicated like other sections
-  3. Researcher sees volatility as changes between stored snapshots, labeled with the tracking start date; a first-time lookup says no history yet instead of "stable"
-  4. Researcher sees the Trustpilot score, review count and link, labeled with source and fetch date; a domain without a Trustpilot page shows a Vietnamese empty state and the report keeps rendering
-  5. Researcher sees Tier-1 geo share, brand vs non-brand keyword split, and threshold badges without extra credits
+  2. Researcher sees the Trustpilot score, review count and link, labeled with source and fetch date; a domain without a Trustpilot page shows a Vietnamese empty state and the report keeps rendering
+  3. Researcher sees Tier-1 geo share, brand vs non-brand keyword split, and threshold badges without extra credits
 
 **Plans**: TBD
 **UI hint**: yes
@@ -191,7 +189,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 (Ph
 | REFS-01, REFS-02, REFS-03, REFS-04, REFS-05 | 2 |
 | ADVR-01, ADVR-02, ADVR-03, ADVR-04, CRTV-01, CRTV-02 | 3 |
 | RPT-01, RPT-02, RPT-03, RPT-04 | 4 |
-| PERS-01, PERS-02, VET-01, VET-02, VET-06, TRST-01, TRST-02 | 5 |
+| PERS-01, PERS-02, VET-01, TRST-01, TRST-02 | 5 |
+| VET-02, VET-06 | 9 |
 | ADLG-01, ADLG-02, ADLG-03, ADLG-04 | 6 |
 | AFFL-01, AFFL-02, AFFL-03, ECON-01, ECON-02, ECON-03, VET-03 | 7 |
 | SERK-02, SERK-03, SERK-04, SERK-05 | 8 |
@@ -211,6 +210,35 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 (Ph
 
 - **Social ads & reputation (SOCL-01..03, TRST-03)** — Meta, TikTok, Wayback/Scamadviser/Reddit, Trustpilot review-level analysis; deferred until Google flow ships. (Trustpilot score + count moved into Phase 5.)
 - **Scoring & ranking (VET-04, VET-05, AFFL-04)** — ARS, AOS ranking of saved domains, network publisher APIs.
+
+### Phase 9: Domain age and WHOIS history via WhoisXML API
+
+**Goal**: The researcher sees how old the analyzed domain is and how stable it has been (registrar, nameserver, registrant-privacy and expiry changes over time), from the WhoisXML WHOIS and WHOIS History APIs, with credit-conscious on-demand history.
+**Depends on**: Phase 1 (cached-store factory); independent of Phases 2–8
+**Requirements**: VET-02, VET-06
+**Success Criteria** (what must be TRUE):
+
+  1. Researcher sees domain creation date, age in years, registrar, expiry, last-updated, status flags, nameservers and a privacy indicator, plus a Vietnamese age verdict (<1 năm / 1–3 năm / >3 năm), from the WhoisXML WHOIS API (1 credit, cached 24h with in-flight dedup)
+  2. Researcher can click to load WHOIS history; the server first asks for the record count (preview) and refuses to buy more than a fixed cap of records, then returns a compact change timeline (registrar, nameserver, registrant-organization/privacy and expiry changes with dates) — never raw WHOIS text
+  3. Researcher sees a Vietnamese summary of volatility (number of changes, first record date) and honest empty/error states; the key never reaches the browser and a missing key or failure only affects this section
+
+**Plans**: TBD
+**UI hint**: yes
+**Plans**: 5 plans (09-01 types + pure insights; 09-02 WhoisXML client and caches; 09-03 panel + fixtures; 09-04 routes; 09-05 dashboard mount)
+
+Plans:
+
+- [ ] 09-01-PLAN.md — Types, formatDate, pure whois-insights helpers (wave 1)
+- [ ] 09-02-PLAN.md — WhoisXML client, preview/cap/purchase, cached stores (wave 2)
+- [ ] 09-03-PLAN.md — WhoisPanel, fixture and tests (wave 2)
+- [ ] 09-04-PLAN.md — /api/whois and /api/whois/history routes (wave 3)
+- [ ] 09-05-PLAN.md — Mount panel in dashboard, fix dashboard tests (wave 4)
+
+**Planning gate**: live-probed 2026-10-23 with a trial key (credits: WHOIS API 500, Domain Research Suite 499): `whoisserver/WhoisService` returns createdDate/updatedDate/expiresDate/estimatedDomainAge/registrarName/status/nameServers (1 credit); `whois-history.whoisxmlapi.com/api/v1?mode=preview` returns `{recordsCount}` (1 credit); `mode=purchase` returned 44 records for gohighlevel.com and cost 50 credits (~1/record), each with audit date, registrar, nameServers, status, registrantContact and rawText. Cost scales with record count, hence preview + cap + on-demand + 24h cache. Trial credits are finite and the key must stay server-side.
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 9 to break down)
 
 ---
 *Roadmap created: 2026-10-13 · Last updated: 2026-10-23 (reality-check sync)*

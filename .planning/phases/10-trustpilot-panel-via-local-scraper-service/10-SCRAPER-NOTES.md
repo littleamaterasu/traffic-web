@@ -18,3 +18,9 @@ The panel renders these automatically when present; nothing in the app needs to 
 ## Failure shapes
 
 Responses for domains with no Trustpilot page are not yet characterized. Any non-success response is shown as an error; `success: true` without `business` is shown as the empty state.
+
+## Observed failure shapes (2026-10-23)
+
+- Existing domain: HTTP 200 `{ success: true, business: { id, name, numberOfReviews, stars, trustScore, website }, reviews: [5 items], total, trustpilot_url, target }` in about 21 s.
+- Non-existent Trustpilot page (for example `zzzz-no-such-site-98213.com`): HTTP 200 after about 31 s with `{ success: true, business: {}, reviews: [], total: 0, target, trustpilot_url }`. This maps to the empty state (profile null, "Chưa có hồ sơ Trustpilot cho tên miền này"), is cached only 10 minutes, and is why the server timeout is 45 s.
+- Missing domain: HTTP 400 `{ error: "Missing required parameter: 'domain' or 'url' ...", success: false }`, mapped to `scraper_error` 502.

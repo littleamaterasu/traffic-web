@@ -2,7 +2,15 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { trafficFixture } from "@/test/fixture";
+import { whoisFixture } from "@/test/whois-fixture";
 import { TrafficDashboard } from "./traffic-dashboard";
+
+function trafficFetch(payload: unknown) {
+  return vi.fn(async (input: RequestInfo | URL) => ({
+    ok: true,
+    json: async () => (String(input).startsWith("/api/whois") ? whoisFixture : payload),
+  }));
+}
 
 describe("TrafficDashboard", () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -14,10 +22,7 @@ describe("TrafficDashboard", () => {
 
   it("tìm kiếm và hiển thị toàn bộ nhóm dữ liệu", async () => {
     const user = userEvent.setup();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({ ok: true, json: async () => trafficFixture }),
-    );
+    vi.stubGlobal("fetch", trafficFetch(trafficFixture));
 
     const { container } = render(<TrafficDashboard />);
     await user.type(screen.getByLabelText("Tên miền hoặc URL website"), "vercel.com");
@@ -47,10 +52,7 @@ describe("TrafficDashboard", () => {
 
   it("mở phần giải thích ý nghĩa và thông số của từng bảng", async () => {
     const user = userEvent.setup();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({ ok: true, json: async () => trafficFixture }),
-    );
+    vi.stubGlobal("fetch", trafficFetch(trafficFixture));
 
     render(<TrafficDashboard />);
     await user.click(screen.getByRole("button", { name: "vercel.com" }));
@@ -112,7 +114,7 @@ describe("TrafficDashboard", () => {
       top_regions: [],
       ai_traffic: null,
     };
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => emptyFixture }));
+    vi.stubGlobal("fetch", trafficFetch(emptyFixture));
 
     render(<TrafficDashboard />);
     await user.click(screen.getByRole("button", { name: "vercel.com" }));
@@ -121,9 +123,9 @@ describe("TrafficDashboard", () => {
     expect(screen.getByText("Chưa có dữ liệu referral từ AI assistants.")).toBeInTheDocument();
   });
 
-  it("hiển thị các phần SE Ranking theo yêu cầu bên dưới panel TabAPI mà không gọi /api/seranking", async () => {
+  it("hiển thị các phần SE Ranking và WHOIS bên dưới panel TabAPI, chỉ tải WHOIS hiện tại và không gọi /api/seranking hay lịch sử WHOIS", async () => {
     const user = userEvent.setup();
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => trafficFixture });
+    const fetchMock = trafficFetch(trafficFixture);
     vi.stubGlobal("fetch", fetchMock);
 
     render(<TrafficDashboard />);
@@ -136,8 +138,37 @@ describe("TrafficDashboard", () => {
     expect(screen.getByRole("button", { name: "Tải mẫu quảng cáo" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Tải đối thủ quảng cáo" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Tải backlink" })).toBeInTheDocument();
-    for (const call of fetchMock.mock.calls) {
-      expect(String(call[0]).startsWith("/api/seranking")).toBe(false);
+    expect(screen.getByRole("heading", { level: 2, name: "Tuổi thọ & lịch sử domain (WhoisXML)" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Tải lịch sử domain" })).toBeInTheDocument();
+    const urls = fetchMock.mock.calls.map((call) => String(call[0]));
+    expect(urls.some((url) => url.startsWith("/api/whois?domain=vercel.com"))).toBe(true);
+    for (const url of urls) {
+      expect(url.startsWith("/api/seranking")).toBe(false);
+      expect(url.startsWith("/api/whois/history")).toBe(false);
     }
+  });
+
+  it("lỗi WHOIS không làm hỏng phần còn lại của báo cáo", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) =>
+        String(input).startsWith("/api/whois")
+          ? {
+              ok: false,
+              json: async () => ({
+                error: { code: "missing_api_key", message: "Chưa cấu hình WHOIS_API_KEY trên máy chủ." },
+              }),
+            }
+          : { ok: true, json: async () => trafficFixture },
+      ),
+    );
+
+    render(<TrafficDashboard />);
+    await user.click(screen.getByRole("button", { name: "vercel.com" }));
+
+    expect(await screen.findByText("Agentic Infrastructure - Vercel")).toBeInTheDocument();
+    const alert = await screen.findByText("Chưa cấu hình WHOIS_API_KEY trên máy chủ.");
+    expect(alert.closest('[role="alert"]')).not.toBeNull();
   });
 });

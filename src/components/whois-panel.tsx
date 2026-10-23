@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { EmptyCell, MetricCard, Panel } from "@/components/panel";
 import type { PanelInfo } from "@/components/panel";
 import { formatDate, formatNumber } from "@/lib/format";
@@ -109,7 +109,7 @@ async function requestRecord(domain: string, signal: AbortSignal): Promise<Recor
     return {
       requestedDomain: domain,
       phase: "error",
-      message: isAbortError(cause) ?TIMEOUT_MESSAGE : FALLBACK_ERROR_MESSAGE,
+      message: isAbortError(cause) ? TIMEOUT_MESSAGE : FALLBACK_ERROR_MESSAGE,
     };
   }
 }
@@ -181,10 +181,24 @@ const IDLE_HISTORY_STATE: HistoryState = { requestedDomain: null, phase: "idle" 
 
 function HistorySection({ domain }: { domain: string }) {
   const [state, setState] = useState<HistoryState>(IDLE_HISTORY_STATE);
+  const controllerRef = useRef<AbortController | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      controllerRef.current?.abort();
+      controllerRef.current = null;
+    };
+  }, [domain]);
 
   async function load() {
-    setState({ requestedDomain: domain, phase: "loading" });
+    controllerRef.current?.abort();
     const controller = new AbortController();
+    controllerRef.current = controller;
+    const isCurrent = () => mountedRef.current && controllerRef.current === controller;
+    setState({ requestedDomain: domain, phase: "loading" });
     const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
     try {
@@ -198,6 +212,7 @@ function HistorySection({ domain }: { domain: string }) {
       } catch {
         body = null;
       }
+      if (!isCurrent()) return;
       if (!response.ok) {
         setState({ requestedDomain: domain, phase: "error", message: readErrorMessage(body, FALLBACK_ERROR_MESSAGE) });
         return;
@@ -212,6 +227,7 @@ function HistorySection({ domain }: { domain: string }) {
       }
       setState({ requestedDomain: domain, phase: "ready", history: body.history.data });
     } catch (cause) {
+      if (!isCurrent()) return;
       setState({
         requestedDomain: domain,
         phase: "error",

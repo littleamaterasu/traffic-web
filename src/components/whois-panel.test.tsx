@@ -240,6 +240,61 @@ describe("WhoisPanel", () => {
     expect(container.querySelector("img")).toBeNull();
   });
 
+  it("huỷ yêu cầu lịch sử khi gỡ component và không đặt state khi phản hồi đến muộn", async () => {
+    const user = userEvent.setup();
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    let resolveHistory: (value: unknown) => void = () => {};
+    let historySignal: AbortSignal | undefined;
+    const fetchMock = vi.fn((url: string, init?: { signal?: AbortSignal }) => {
+      if (url.startsWith("/api/whois/history")) {
+        historySignal = init?.signal;
+        return new Promise((resolve) => {
+          resolveHistory = resolve;
+        });
+      }
+      return Promise.resolve(jsonResponse(whoisFixture));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { unmount } = render(<WhoisPanel domain="acme.com" />);
+    await screen.findByText("GoDaddy.com, LLC");
+    await user.click(screen.getByRole("button", { name: "Tải lịch sử domain" }));
+    expect(historySignal?.aborted).toBe(false);
+
+    unmount();
+    expect(historySignal?.aborted).toBe(true);
+
+    resolveHistory(jsonResponse(whoisHistoryFixture));
+    await Promise.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(errorSpy).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+
+  it("huỷ yêu cầu lịch sử trước đó khi đổi tên miền", async () => {
+    const user = userEvent.setup();
+    let historySignal: AbortSignal | undefined;
+    const fetchMock = vi.fn((url: string, init?: { signal?: AbortSignal }) => {
+      if (url.startsWith("/api/whois/history")) {
+        historySignal = init?.signal;
+        return new Promise(() => {});
+      }
+      return Promise.resolve(jsonResponse(whoisFixture));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { rerender } = render(<WhoisPanel domain="acme.com" />);
+    await screen.findByText("GoDaddy.com, LLC");
+    await user.click(screen.getByRole("button", { name: "Tải lịch sử domain" }));
+    expect(historySignal?.aborted).toBe(false);
+
+    rerender(<WhoisPanel domain="other.org" />);
+
+    expect(historySignal?.aborted).toBe(true);
+    expect(await screen.findByRole("button", { name: "Tải lịch sử domain" })).toBeEnabled();
+  });
+
   it("đặt lại lịch sử về trạng thái chờ và tải lại bản ghi khi đổi tên miền", async () => {
     const user = userEvent.setup();
     const fetchMock = routedFetch({});

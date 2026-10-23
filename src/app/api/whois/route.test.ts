@@ -20,7 +20,7 @@ const whoisUpstream = {
     registrarName: "Acme Registrar",
     status: "clientTransferProhibited",
     nameServers: { hostNames: ["ns1.acme.com", "ns2.acme.com"] },
-    registrant: { organization: "Acme Co", name: "Alice" },
+    registrant: { organization: "SENTINEL-ORG-ACME", name: "SENTINEL-PERSON-JANE" },
     rawText: "RAW-SENTINEL",
     contactEmail: "sentinel@example.test",
   },
@@ -93,11 +93,14 @@ describe("GET /api/whois", () => {
       created_date: "2010-05-01T00:00:00Z",
       registrar: "Acme Registrar",
       name_servers: ["ns1.acme.com", "ns2.acme.com"],
-      registrant_organization: "Acme Co",
+      privacy_protected: false,
     });
+    expect(body.whois.data).not.toHaveProperty("registrant_organization");
     expect(typeof body.whois.data.age_days).toBe("number");
     const serialized = JSON.stringify(body);
     expect(serialized).not.toContain(API_KEY);
+    expect(serialized).not.toContain("SENTINEL-ORG-ACME");
+    expect(serialized).not.toContain("SENTINEL-PERSON-JANE");
     expect(serialized).not.toContain("RAW-SENTINEL");
     expect(serialized).not.toContain("sentinel@example.test");
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -167,5 +170,19 @@ describe("GET /api/whois", () => {
     await GET(request());
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("www.acme.com và acme.com chỉ gọi upstream một lần", async () => {
+    vi.stubEnv("WHOIS_API_KEY", API_KEY);
+    const fetchMock = fetchRouter({ [WHOIS_PATH]: whoisUpstream });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await GET(request("www.acme.com"));
+    await GET(request("acme.com"));
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(new URL(String(fetchMock.mock.calls[0][0])).searchParams.get("domainName")).toBe(
+      "acme.com",
+    );
   });
 });

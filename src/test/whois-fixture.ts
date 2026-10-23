@@ -13,7 +13,6 @@ export const whoisFixture: WhoisResponse = {
       registrar: "GoDaddy.com, LLC",
       status: ["clientTransferProhibited", "clientDeleteProhibited"],
       name_servers: ["ns1.acme.com", "ns2.acme.com"],
-      registrant_organization: "Domains By Proxy, LLC",
       privacy_protected: true,
     },
     error: null,

@@ -181,6 +181,36 @@ describe("GET /api/whois/history", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("www.acme.com và acme.com dùng chung một lần mua", async () => {
+    vi.stubEnv("WHOIS_API_KEY", API_KEY);
+    const fetchMock = fetchRouter({ count: 3 });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await GET(request("www.acme.com"));
+    await GET(request("acme.com"));
+
+    expect(modes(fetchMock)).toEqual(["preview", "purchase"]);
+  });
+
+  it("trả slice lỗi history_budget_exceeded ở lượt mua thứ 11 trong 24 giờ", async () => {
+    vi.stubEnv("WHOIS_API_KEY", API_KEY);
+    const fetchMock = fetchRouter({ count: 3 });
+    vi.stubGlobal("fetch", fetchMock);
+
+    for (let index = 0; index < 10; index += 1) {
+      const ok = await (await GET(request(`site${index}.com`))).json();
+      expect(ok.history.error).toBeNull();
+    }
+    const response = await GET(request("site-extra.com"));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.history.data).toBeNull();
+    expect(body.history.error.code).toBe("history_budget_exceeded");
+    expect(body.history.error.message).toContain("10 lượt mua");
+    expect(modes(fetchMock).filter((mode) => mode === "purchase")).toHaveLength(10);
+  });
+
   it("thay lỗi không xác định bằng thông điệp chung và không lộ chi tiết nội bộ", async () => {
     vi.stubEnv("WHOIS_API_KEY", API_KEY);
     vi.stubGlobal("fetch", fetchRouter());

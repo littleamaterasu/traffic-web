@@ -18,7 +18,7 @@ A brownfield extension of the working TabAPI-backed traffic dashboard. Four phas
 - [ ] **Phase 5: Persistence & Domain Profile** - Local DB for snapshots and saved inputs, business-sustainability block (WHOIS age + volatility, Trustpilot score/reviews), zero-credit derived callouts (Tier-1 share, brand/non-brand keywords)
 - [ ] **Phase 6: Google Ad Longevity (SerpAPI)** - Ads Transparency creatives with first/last shown dates, Winning Ad Ratio, ASI, graceful fallback without `SERPAPI_KEY`
 - [ ] **Phase 7: Affiliate Terms & Unit Economics** - Three-tier affiliate data (auto / suggested / manual) and Projected EPC, Max CPC, Arbitrage Spread
-- [ ] **Phase 8: SE Ranking Integration** - Supplementary organic/paid estimates, paid keywords with ad copy, advertiser competitors and backlinks summary from SE Ranking Data API, clearly source-labeled
+- [ ] **Phase 8: SE Ranking Integration** - Supplementary organic/paid estimates, advertiser competitors and backlinks summary from SE Ranking Data API, clearly source-labeled
 
 ## Phase Details
 
@@ -144,15 +144,14 @@ Plans:
 
 **Goal**: The researcher sees SE Ranking's organic and paid search estimates for the analyzed domain alongside the TabAPI figures, clearly labeled by source, without any change to the existing report or its credit usage.
 **Depends on**: Phase 1 (cached-store factory); independent of Phases 2–7
-**Requirements**: SERK-01, SERK-02, SERK-03, SERK-04, SERK-05
+**Requirements**: SERK-01, SERK-03, SERK-04, SERK-05
 **Success Criteria** (what must be TRUE):
 
   1. Researcher sees organic and paid keyword count, estimated traffic and traffic value (worldwide) from SE Ranking, labeled as SE Ranking estimates distinct from TabAPI
-  2. Researcher sees top paid keywords with CPC, volume, position, ad block (top/bottom), ad title/description/display URL and landing page
-  3. Researcher sees advertiser competitors (domains bidding on overlapping keywords) with common-keyword counts
-  4. Researcher can click "Tải backlink" to load a backlinks summary (backlinks, referring domains, dofollow share, domain inlink rank, top anchors); it is never fetched automatically because it costs ~100 credits
-  5. Without `SE_RANKING_API_KEY`, or when SE Ranking fails or has no data, the section shows a Vietnamese empty/error state and the rest of the report renders; the key never reaches the browser
-  6. Repeated lookups within 24h are served from cache with in-flight dedup
+  2. Researcher sees advertiser competitors (domains bidding on overlapping keywords) with common-keyword counts
+  3. Researcher can click "Tải backlink" to load a backlinks summary (backlinks, referring domains, dofollow share, domain inlink rank, top anchors); it is never fetched automatically because it costs ~100 credits
+  4. Without `SE_RANKING_API_KEY`, or when SE Ranking fails or has no data, the section shows a Vietnamese empty/error state and the rest of the report renders; the key never reaches the browser
+  5. Repeated lookups within 24h are served from cache with in-flight dedup
 
 **Plans**: 4/4 plans executed
 
@@ -193,9 +192,9 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | PERS-01, PERS-02, VET-01, VET-02, VET-06, TRST-01, TRST-02 | 5 |
 | ADLG-01, ADLG-02, ADLG-03, ADLG-04 | 6 |
 | AFFL-01, AFFL-02, AFFL-03, ECON-01, ECON-02, ECON-03, VET-03 | 7 |
-| SERK-01, SERK-02, SERK-03, SERK-04, SERK-05 | 8 |
+| SERK-01, SERK-03, SERK-04, SERK-05 | 8 |
 
-**Coverage:** 40/40 v1 requirements mapped ✓ — no orphans, no duplicates.
+**Coverage:** 39/39 v1 requirements mapped ✓ — no orphans, no duplicates.
 
 ## Notes for Planning
 

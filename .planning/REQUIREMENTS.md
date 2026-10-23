@@ -83,7 +83,7 @@ Source: domain-check checklist; analysis and decisions in `.planning/research/DO
 **SE Ranking (supplementary SEO / paid data)**
 
 - [x] **SERK-01**: Researcher sees worldwide organic and paid keyword count, estimated traffic and traffic value from SE Ranking `domain/overview/worldwide`, labeled as SE Ranking estimates distinct from TabAPI
-- [x] **SERK-02**: Researcher sees top paid keywords from `domain/keywords?type=adv` with CPC, volume, position, ad block, ad title/description/display URL and landing page
+- [~] ~~**SERK-02**: Researcher sees top paid keywords from `domain/keywords?type=adv` with CPC, volume, position, ad block, ad title/description/display URL and landing page~~ Dropped 2026-10-23: SE Ranking volume/CPC conflict with TabAPI; TabAPI is the source of truth for keyword metrics
 - [x] **SERK-03**: Researcher sees advertiser competitors from `domain/competitors?type=adv` with common-keyword counts and relevance
 - [x] **SERK-04**: Researcher can load, on explicit click only (never automatically; ~100 credits), a backlinks summary from `backlinks/summary` (backlinks, referring domains, dofollow share, domain inlink rank, top anchors)
 - [x] **SERK-05**: `SE_RANKING_API_KEY` is read server-side only; absent key, upstream error or empty data yields a Vietnamese state without failing the report; results are cached 24h with in-flight dedup via `createCachedStore`
@@ -167,15 +167,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ECON-02 | Phase 7 | Pending |
 | ECON-03 | Phase 7 | Pending |
 | SERK-01 | Phase 8 | Complete |
-| SERK-02 | Phase 8 | Complete |
+| SERK-02 | Phase 8 | Dropped |
 | SERK-03 | Phase 8 | Complete |
 | SERK-04 | Phase 8 | Complete |
 | SERK-05 | Phase 8 | Complete |
 
 **Coverage:**
 
-- v1 requirements: 40 total
-- Mapped to phases: 40
+- v1 requirements: 39 total
+- Mapped to phases: 39
 - Unmapped: 0 ✓
 
 ---

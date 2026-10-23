@@ -22,15 +22,15 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Related Advertisers
 
-- [ ] **ADVR-01**: Researcher can view advertisers related to the analyzed domain, synthesized from Google Search `paid_results` (1 credit per query)
-- [ ] **ADVR-02**: Researcher sees each advertiser with its displayed ad text and display URL from the SERP snapshot
-- [ ] **ADVR-03**: Researcher sees a Vietnamese empty state when no paid results exist for the query, without the report failing
-- [ ] **ADVR-04**: Advertiser queries are cached and deduplicated like other sections to limit credit spend
+- [ ] **ADVR-01**: Researcher can view advertisers related to the analyzed domain, synthesized from Google Search `paid_results` (1 credit per query) — ⚠ partial: advertisers are delivered through the Google Ads Transparency panel (SerpAPI, commit 300b113), not through SERP `paid_results`
+- [ ] **ADVR-02**: Researcher sees each advertiser with its displayed ad text and display URL from the SERP snapshot — ⚠ unverified/partial: advertiser cards show creative counts and formats; per-creative text appears only in the on-demand detail box; no display URL
+- [ ] **ADVR-03**: Researcher sees a Vietnamese empty state when no paid results exist for the query, without the report failing — ⚠ code shows a Vietnamese empty state for the Transparency panel ("Không tìm thấy quảng cáo nào cho tên miền này."); SERP `paid_results` empty state does not exist
+- [ ] **ADVR-04**: Advertiser queries are cached and deduplicated like other sections to limit credit spend — ⚠ the ads routes cache and dedup via `createCachedStore` (`src/lib/ads-transparency.ts`, 24h); SERP-based advertiser queries do not exist
 
 ### Ad Creatives
 
-- [ ] **CRTV-01**: Researcher can view creatives (headline, display URL, description) as a client-side filtered view of the advertisers payload, costing no extra credits
-- [ ] **CRTV-02**: Researcher can open the ad's landing page from a creative card
+- [ ] **CRTV-01**: Researcher can view creatives (headline, display URL, description) as a client-side filtered view of the advertisers payload, costing no extra credits — ⚠ partial: creative cards (preview image, format, size, first/last shown, status) exist via Transparency, but each load costs a SerpApi call and there is no headline/description
+- [ ] **CRTV-02**: Researcher can open the ad's landing page from a creative card — ⚠ only a Google details link ("Xem trên Google"); no landing page link in the Transparency panel. The SE Ranking ad copy section shows landing pages on demand
 
 ### Readable Report
 
@@ -75,15 +75,15 @@ Source: domain-check checklist; analysis and decisions in `.planning/research/DO
 
 **Google Ad Longevity (SerpAPI)**
 
-- [ ] **ADLG-01**: Researcher sees Google Ads Transparency creatives for the domain with first/last shown dates, via SerpAPI behind a server-side optional `SERPAPI_KEY`
-- [ ] **ADLG-02**: Researcher sees active Google ad count and Winning Ad Ratio (share of ads running >30d)
-- [ ] **ADLG-03**: Researcher sees unique advertiser count and Advertiser Saturation Index (ASI)
-- [ ] **ADLG-04**: Without `SERPAPI_KEY`, the report falls back to the Phase 3 SERP-synthesis view and labels longevity as unavailable
+- [ ] **ADLG-01**: Researcher sees Google Ads Transparency creatives for the domain with first/last shown dates, via SerpAPI behind a server-side optional `SERPAPI_KEY` — ✓ delivered via 300b113 (SerpAPI Transparency, `SERPAPI_KEY` required, not optional); requirement text needs re-check against actual behavior
+- [ ] **ADLG-02**: Researcher sees active Google ad count and Winning Ad Ratio (share of ads running >30d) — ⚠ partial: active count yes (shown in the last 7 days, `ACTIVE_WINDOW_DAYS`=7); Winning Ad Ratio not computed (`LONG_RUNNING_DAYS`=30 only drives a per-creative "Chạy lâu" badge and longest-running highlight)
+- [ ] **ADLG-03**: Researcher sees unique advertiser count and Advertiser Saturation Index (ASI) — ⚠ partial: unique advertiser count yes; ASI not computed
+- [ ] **ADLG-04**: Without `SERPAPI_KEY`, the report falls back to the Phase 3 SERP-synthesis view and labels longevity as unavailable — ✗ not delivered: `SERPAPI_KEY` is required, `/api/ads` and `/api/ads/detail` return 500 `missing_api_key`, no fallback
 
 **SE Ranking (supplementary SEO / paid data)**
 
 - [~] ~~**SERK-01**: Researcher sees worldwide organic and paid keyword count, estimated traffic and traffic value from SE Ranking `domain/overview/worldwide`, labeled as SE Ranking estimates distinct from TabAPI~~ Dropped 2026-10-23: SE Ranking overview overlaps TabAPI and the numbers disagree
-- [x] **SERK-02**: Researcher can load, on explicit click, SE Ranking ad copy (title/description/display URL) and landing page for paid keywords from `domain/keywords?type=adv`; volume/CPC intentionally not shown
+- [x] **SERK-02**: Researcher can load, on explicit click, SE Ranking ad copy (title/description/display URL) and landing page for paid keywords from `domain/keywords?type=adv` (source db `us` by default, top 10); volume/CPC intentionally not shown
 - [x] **SERK-03**: Researcher can load advertiser competitors from `domain/competitors?type=adv` only by explicit click (never automatically), with common-keyword counts and relevance
 - [x] **SERK-04**: Researcher can load, on explicit click only (never automatically; ~100 credits), a backlinks summary from `backlinks/summary` (backlinks, referring domains, dofollow share, domain inlink rank, top anchors)
 - [x] **SERK-05**: `SE_RANKING_API_KEY` is read server-side only; absent key, upstream error or empty data yields a Vietnamese state without failing the report; results are cached 24h with in-flight dedup via `createCachedStore`; competitors, backlinks and ad copy are fetched on demand only
@@ -138,12 +138,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REFS-03 | Phase 2 | Pending |
 | REFS-04 | Phase 2 | Pending |
 | REFS-05 | Phase 2 | Pending |
-| ADVR-01 | Phase 3 | Pending |
-| ADVR-02 | Phase 3 | Pending |
+| ADVR-01 | Phase 3 | Partial (via Transparency, 300b113) |
+| ADVR-02 | Phase 3 | Partial |
 | ADVR-03 | Phase 3 | Pending |
 | ADVR-04 | Phase 3 | Pending |
-| CRTV-01 | Phase 3 | Pending |
-| CRTV-02 | Phase 3 | Pending |
+| CRTV-01 | Phase 3 | Partial |
+| CRTV-02 | Phase 3 | Partial |
 | RPT-01 | Phase 4 | Pending |
 | RPT-02 | Phase 4 | Pending |
 | RPT-03 | Phase 4 | Pending |
@@ -155,9 +155,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VET-06 | Phase 5 | Pending |
 | TRST-01 | Phase 5 | Pending |
 | TRST-02 | Phase 5 | Pending |
-| ADLG-01 | Phase 6 | Pending |
-| ADLG-02 | Phase 6 | Pending |
-| ADLG-03 | Phase 6 | Pending |
+| ADLG-01 | Phase 6 | Complete (needs re-check, 300b113) |
+| ADLG-02 | Phase 6 | Partial |
+| ADLG-03 | Phase 6 | Partial |
 | ADLG-04 | Phase 6 | Pending |
 | AFFL-01 | Phase 7 | Pending |
 | AFFL-02 | Phase 7 | Pending |
@@ -172,6 +172,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SERK-04 | Phase 8 | Complete |
 | SERK-05 | Phase 8 | Complete |
 
+Note: Phase 8 human UAT is still pending; the SERK statuses reflect code, not UI verification. ADVR-03/04 stay Pending (the SERP `paid_results` behavior does not exist).
+
 **Coverage:**
 
 - v1 requirements: 39 total
@@ -180,4 +182,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-10-13*
-*Last updated: 2026-10-14 after direction change (added PERS/VET/ADLG/AFFL/ECON, mapped to Phases 5–7)*
+*Last updated: 2026-10-23 (reality-check sync with implemented code; statuses: Pending/Partial/Complete/Dropped)*

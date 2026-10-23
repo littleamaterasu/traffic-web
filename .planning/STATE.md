@@ -40,10 +40,10 @@ See: .planning/PROJECT.md (updated 2026-10-14)
 
 ## Current Position
 
-Phase: 08 (SE Ranking Integration (Supplementary SEO / Paid Data)) — EXECUTING
-Plan: 4 of 4
-Status: Phase complete — ready for verification
-Last activity: 2026-10-22 — Phase 08 execution started
+Phase: 08 (SE Ranking Integration (Supplementary SEO / Paid Data)) — IN PROGRESS (4/4 plans executed; human UAT/verification items pending)
+Plan: 4 of 4 executed; reshaped afterwards by quick tasks 261023-ddc, 261023-djq, 261023-duc (on-demand ad copy, competitors and backlinks; overview dropped)
+Status: Phase 8 in progress, awaiting human UAT
+Last activity: 2026-10-23 — planning docs synced with implemented code (quick task 261023-eh3)
 
 Progress: [█░░░░░░░░░] 14%
 
@@ -83,6 +83,7 @@ Progress: [█░░░░░░░░░] 14%
 ### Roadmap Evolution
 
 - Phase 8 added: SE Ranking integration (supplementary organic/paid traffic, paid keywords with ad copy, advertiser competitors, backlinks summary); live-probed 2026-10-22
+- Reality check (2026-10-23): commit 300b113 added a Google Ads Transparency feature (SerpAPI, `/api/ads`, `/api/ads/detail`) outside GSD, partially covering Phases 3 and 6 (requires `SERPAPI_KEY`, no fallback); Phase 8 was reshaped into three on-demand SE Ranking routes (overview dropped); domain-check checklist coverage is 9/18 metrics answered (from code reading); Phases 2, 4, 5 and 7 have no code, and there is no WHOIS or Trustpilot code
 
 ### Decisions
 
@@ -131,6 +132,7 @@ Items acknowledged and deferred at milestone close, most recent first:
 | 261023-ddc | Remove SE Ranking ad-keywords slice (SERK-02 dropped) | 2026-10-23 | b4c68bb | [261023-ddc-remove-se-ranking-ad-keywords-slice-and-](./quick/261023-ddc-remove-se-ranking-ad-keywords-slice-and-/) |
 | 261023-djq | SE Ranking competitors load on demand via button | 2026-10-23 | 17cc39a | [261023-djq-se-ranking-competitors-on-demand-button](./quick/261023-djq-se-ranking-competitors-on-demand-button/) |
 | 261023-duc | SE Ranking: remove overview panel (SERK-01 dropped), re-add on-demand ad copy without volume/CPC (SERK-02) | 2026-10-23 | 4b1198a | [261023-duc-se-ranking-remove-overview-panel-re-add-](./quick/261023-duc-se-ranking-remove-overview-panel-re-add-/) |
+| 261023-eh3 | Sync planning docs with implemented code (documentation only) | 2026-10-23 | PENDING | [261023-eh3-sync-planning-docs-with-implemented-code](./quick/261023-eh3-sync-planning-docs-with-implemented-code/) |
 
 ## Session Continuity
 

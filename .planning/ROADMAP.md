@@ -61,16 +61,17 @@ Plans:
 ### Phase 3: Related Advertisers & Ad Creatives (SERP Slice)
 
 **Goal**: The researcher sees which advertisers appear around the domain's search results and the text creatives they run — one credit-gated Google Search fetch powering both views in the dashboard.
+**Partially delivered outside GSD** by commit 300b113 — scope to be re-planned.
 **Mode:** mvp
 **Depends on**: Phase 1 (independent of Phase 2; ordered second so cache discipline is proven on the pricier endpoint first)
 **Requirements**: ADVR-01, ADVR-02, ADVR-03, ADVR-04, CRTV-01, CRTV-02
 **Success Criteria** (what must be TRUE):
 
-  1. Researcher sees a deduplicated list of advertisers related to the analyzed domain, synthesized from Google Search `paid_results`
-  2. Each advertiser entry shows its displayed ad text and display URL from the SERP snapshot
-  3. Researcher can view creatives as cards (headline, display URL, description) filtered client-side from the advertisers payload — costing no extra credits — and can open a creative's landing page
-  4. When no paid results exist for the query, the researcher sees a Vietnamese empty state and the report does not fail
-  5. Advertiser queries are cached and deduplicated like other sections, so repeated lookups within 24h do not re-bill credits
+  1. ⚠ Researcher sees a deduplicated list of advertisers related to the analyzed domain, synthesized from Google Search `paid_results` (partial: advertisers come from the SerpAPI Transparency panel grouped by advertiser, not from SERP `paid_results`)
+  2. ⚠ Each advertiser entry shows its displayed ad text and display URL from the SERP snapshot (partial: advertiser cards show creative count, active count, total days, format mix; ad text per creative only in the on-demand detail box, no display URL)
+  3. ⚠ Researcher can view creatives as cards (headline, display URL, description) filtered client-side from the advertisers payload — costing no extra credits — and can open a creative's landing page (partial: ✓ creative cards with preview, format and first/last shown; ⚠ landing page only via the "Xem trên Google" details link; each load costs a SerpApi call)
+  4. ✓ When no paid results exist for the query, the researcher sees a Vietnamese empty state and the report does not fail (empty state "Không tìm thấy quảng cáo nào cho tên miền này." in ads-panel.tsx)
+  5. ✓ Advertiser queries are cached and deduplicated like other sections, so repeated lookups within 24h do not re-bill credits (`createCachedStore` in `src/lib/ads-transparency.ts`, keys `domain:pageToken`)
 
 **Plans**: TBD
 **UI hint**: yes
@@ -111,13 +112,14 @@ Plans:
 ### Phase 6: Google Ad Longevity (SerpAPI)
 
 **Goal**: Researcher sees how long each Google ad has been running for the domain, and which creatives are likely winners.
+**Partially delivered outside GSD** by commit 300b113 — scope to be re-planned.
 **Depends on**: Phase 3, Phase 5
 **Requirements**: ADLG-01, ADLG-02, ADLG-03, ADLG-04
 **Success Criteria** (what must be TRUE):
 
-  1. Researcher sees Ads Transparency creatives with first/last shown dates
-  2. Researcher sees active ad count, Winning Ad Ratio, unique advertisers, and ASI
-  3. Without `SERPAPI_KEY` the report still renders the Phase 3 view and marks longevity unavailable; the key never reaches the browser
+  1. ✓ Researcher sees Ads Transparency creatives with first/last shown dates
+  2. ⚠ Researcher sees active ad count, Winning Ad Ratio, unique advertisers, and ASI (partial: active count and unique advertiser count shown; Winning Ad Ratio and ASI not computed)
+  3. ⚠ Without `SERPAPI_KEY` the report still renders the Phase 3 view and marks longevity unavailable; the key never reaches the browser (✓ key is server-side only; ✗ no fallback: `/api/ads` returns 500 `missing_api_key` and the panel shows that error)
 
 **Plans**: TBD
 **UI hint**: yes
@@ -168,18 +170,18 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 (Phase 8 was executed ahead of 2-7; it is independent of them)
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Groundwork — Reusable Primitives & Cache Factory | 2/2 | Complete    | 2026-10-14 |
 | 2. Referring Sites (Backlinks Slice) | 0/TBD | Not started | - |
-| 3. Related Advertisers & Ad Creatives (SERP Slice) | 0/TBD | Not started | - |
+| 3. Related Advertisers & Ad Creatives (SERP Slice) | 0/TBD | Not started (partially delivered outside GSD, 300b113) | - |
 | 4. Consolidated Readable Report | 0/TBD | Not started | - |
 | 5. Persistence & Domain Profile | 0/TBD | Not started | - |
-| 6. Google Ad Longevity (SerpAPI) | 0/TBD | Not started | - |
+| 6. Google Ad Longevity (SerpAPI) | 0/TBD | Not started (partially delivered outside GSD, 300b113) | - |
 | 7. Affiliate Terms & Unit Economics | 0/TBD | Not started | - |
-| 8. SE Ranking Integration | 4/4 | In Progress|  |
+| 8. SE Ranking Integration | 4/4 | In Progress (human UAT pending) |  |
 
 ## Coverage
 
@@ -202,6 +204,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 - **Phase 3 is the highest-uncertainty phase**: SERP `paid_results` sparsity is unknown (TabAPI's own example is empty), and query-derivation strategy (brand term vs top keywords) + default `SEARCH_COUNTRY` must be settled at its planning gate. Consider `--research-phase` for it.
 - **Phase 2 planning gate** must decide the link-graph-vs-traffic labeling framing, the BFF timeout strategy for ~15s cold Backlink latency, and small-domain (empty-sample) fixtures — not just `vercel.com`.
 - **Domain-check checklist (2026-10-14)**: direction changed to an affiliate-offer evaluator; Phases 1–4 are unchanged and Phases 5–7 were appended. Phase 6 may supersede Phase 3's SERP-synthesis advertisers when `SERPAPI_KEY` is present — keep Phase 3 as the fallback. AGENTS.md (generated from PROJECT.md) still states "no database" and the old Core Value; regenerate at Phase 5 start. See `.planning/research/DOMAIN-CHECK-FRAMEWORK.md`.
+- **Reality check (2026-10-23)**: commit 300b113 "integrate google transparency" added `/api/ads`, `/api/ads/detail`, `ads-panel.tsx`, `ads-transparency.ts`, `ads-insights.ts` and `src/types/ads.ts` via SerpAPI outside GSD. It hard-requires `SERPAPI_KEY` (no fallback) and already covers parts of ADLG-01/02/03 and ADVR-01 and the creative-card aspect of CRTV-01; Phases 3 and 6 must be re-planned against it. Phases 2, 4, 5 and 7 have no code, and there is no WHOIS or Trustpilot code. Phase 8 was reshaped by quick tasks 261023-ddc/djq/duc (on-demand ad copy, competitors, backlinks; overview dropped); its human UAT is still pending.
 - Phase 1 is pure extraction/generalization of existing working code — standard patterns, skip research-phase.
 
 ## Backlog
@@ -210,4 +213,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 - **Scoring & ranking (VET-04, VET-05, AFFL-04)** — ARS, AOS ranking of saved domains, network publisher APIs.
 
 ---
-*Roadmap created: 2026-10-13 · Last updated: 2026-10-14 (domain-check checklist notes)*
+*Roadmap created: 2026-10-13 · Last updated: 2026-10-23 (reality-check sync)*

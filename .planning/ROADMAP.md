@@ -252,14 +252,14 @@ Plans:
   2. Researcher sees the latest reviews (up to 5) as Trustpilot-style cards: stars, heading, body, author, location, date
   3. When the scraper is down, slow, returns `success:false`, or the domain has no Trustpilot page, the panel shows a Vietnamese state and the rest of the report is unaffected; the scraper URL is never sent to the browser
 
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 
 - [x] 10-01-PLAN.md — Types, fixtures, scraper client with normalization and cache (wave 1)
 - [x] 10-02-PLAN.md — /api/trustpilot route (wave 2)
 - [x] 10-03-PLAN.md — Star helper and TrustpilotPanel (wave 2)
-- [ ] 10-04-PLAN.md — Dashboard mount, .env.example placeholder, scraper notes (wave 3)
+- [x] 10-04-PLAN.md — Dashboard mount, .env.example placeholder, scraper notes (wave 3)
 
 ---
 *Roadmap created: 2026-10-13 · Last updated: 2026-10-23 (reality-check sync)*

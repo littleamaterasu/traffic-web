@@ -69,8 +69,8 @@ Source: domain-check checklist; analysis and decisions in `.planning/research/DO
 - [ ] **VET-01**: Researcher sees zero-credit derived callouts from existing data — Tier-1 geo share (US/UK/CA/AU), brand vs non-brand keyword split, referral/paid-search share, threshold badges (visits, bounce rate)
 - [x] **VET-02**: Researcher sees domain age (years since creation), registrar, expiry, last-updated date, status flags, nameservers, and privacy-protected indicator from the WhoisXML WHOIS API (1 credit, cached 24h), with a short Vietnamese verdict on age (e.g., <1 năm / 1–3 năm / >3 năm per the checklist's 2–3 year trust threshold)
 - [x] **VET-06**: Researcher can load, on explicit click only (credit-aware: preview first, fixed record cap), the domain's WHOIS history from the WhoisXML WHOIS History API and sees a compact change timeline (registrar, nameserver and WHOIS-privacy-state changes with dates; expiry renewals and registrant text are intentionally excluded) with a Vietnamese volatility summary; history purchases are limited by a process-wide daily budget (10 per rolling 24h); raw WHOIS text is never sent to the browser (provider history replaces the earlier own-snapshot approach, so no persistence is needed)
-- [ ] **TRST-01**: Researcher can load, on explicit click, the domain's Trustpilot profile and latest reviews (up to 5) via the user's local Trustpilot scraper service (server-side proxy, cached 24h), presented in a Trustpilot-like layout: business name, TrustScore with star boxes, total review count, link to the Trustpilot page, visit-website link, and review cards (stars, heading, body, author, location, date)
-- [ ] **TRST-02**: Researcher sees a Vietnamese empty/unavailable state when the domain has no Trustpilot page, the scraper is down or slow, or it returns `success:false`, without the report failing; the data is labeled with its source (Trustpilot via local scraper) and fetch time
+- [x] **TRST-01**: Researcher can load, on explicit click, the domain's Trustpilot profile and latest reviews (up to 5) via the user's local Trustpilot scraper service (server-side proxy, cached 24h), presented in a Trustpilot-like layout: business name, TrustScore with star boxes, total review count, link to the Trustpilot page, visit-website link, and review cards (stars, heading, body, author, location, date)
+- [x] **TRST-02**: Researcher sees a Vietnamese empty/unavailable state when the domain has no Trustpilot page, the scraper is down or slow, or it returns `success:false`, without the report failing; the data is labeled with its source (Trustpilot via local scraper) and fetch time
 - [ ] **VET-03**: Researcher sees an affiliate-link signal from the Backlinks sample (`?ref=`/`?via=`/`?aff=` in `to_url`)
 
 **Google Ad Longevity (SerpAPI)**
@@ -153,8 +153,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VET-01 | Phase 5 | Pending |
 | VET-02 | Phase 9 | Complete |
 | VET-06 | Phase 9 | Complete |
-| TRST-01 | Phase 10 | Pending |
-| TRST-02 | Phase 10 | Pending |
+| TRST-01 | Phase 10 | Complete |
+| TRST-02 | Phase 10 | Complete |
 | ADLG-01 | Phase 6 | Complete (needs re-check, 300b113) |
 | ADLG-02 | Phase 6 | Partial |
 | ADLG-03 | Phase 6 | Partial |

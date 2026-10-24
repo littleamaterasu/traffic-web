@@ -106,6 +106,14 @@ function StarBoxes({ fills, label, size }: { fills: number[]; label: string; siz
   );
 }
 
+function formatClaimedSince(value: string | null | undefined): string | null {
+  const match = typeof value === "string" ? /^(\d{4})-(\d{2})/.exec(value) : null;
+  if (!match) return null;
+  const month = Number(match[2]);
+  if (month < 1 || month > 12) return null;
+  return `${match[2]}/${match[1]}`;
+}
+
 function RatingDistribution({ buckets }: { buckets: TrustpilotRatingBucket[] }) {
   const rows = [5, 4, 3, 2, 1].map((stars) => ({
     stars,
@@ -143,6 +151,7 @@ function BusinessHeader({
   const websiteHref = safeHref(business.website);
   const categories = business.categories ?? [];
   const distribution = business.rating_distribution ?? [];
+  const claimed = formatClaimedSince(business.claimed_since);
   const linkClass = "border-2 border-[#171710] bg-[#fff8dc] px-3 py-1.5 text-xs font-black uppercase underline";
 
   return (
@@ -160,11 +169,9 @@ function BusinessHeader({
             <StarBoxes fills={fills} label={`Điểm ${formatScore(shownScore)} trên 5`} size={24} />
             <p className="text-sm font-bold">{formatNumber(business.review_count)} đánh giá</p>
           </div>
-          {business.claimed_since ? (
-            <p className="mt-2 break-words text-xs font-bold">Hồ sơ đã xác nhận • {business.claimed_since}</p>
-          ) : null}
+          {claimed ? <p className="mt-2 break-words text-xs font-bold">Hồ sơ đã xác nhận • {claimed}</p> : null}
           {categories.length ? (
-            <p className="mt-1 break-words text-xs font-bold text-[#5e5b4d]">Danh mục: {categories.join(", ")}</p>
+            <p className="mt-1 break-words text-xs font-bold text-[#5e5b4d]">Danh mục: {categories.join(" › ")}</p>
           ) : null}
           <div className="mt-3 flex flex-wrap gap-2">
             {profileHref ? (

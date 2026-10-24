@@ -86,7 +86,33 @@ function normalizeCategories(value: unknown): string[] {
   return categories;
 }
 
+const DISTRIBUTION_COUNT_KEYS = [
+  { key: "one", stars: 1 },
+  { key: "two", stars: 2 },
+  { key: "three", stars: 3 },
+  { key: "four", stars: 4 },
+  { key: "five", stars: 5 },
+] as const;
+
+function normalizeDistributionCounts(value: Record<string, unknown>): TrustpilotRatingBucket[] {
+  const counts = DISTRIBUTION_COUNT_KEYS.map(({ key, stars }) => ({
+    stars,
+    count: clampNumber(value[key], 0, Number.MAX_SAFE_INTEGER),
+  }));
+  const declaredTotal = clampNumber(value.total, 0, Number.MAX_SAFE_INTEGER);
+  const total = declaredTotal ?? counts.reduce((sum, item) => sum + (item.count ?? 0), 0);
+  if (!total) return [];
+  const buckets: TrustpilotRatingBucket[] = [];
+  for (const { stars, count } of counts) {
+    if (count === null) continue;
+    const percent = Math.min(100, Math.round((count / total) * 1000) / 10);
+    buckets.push({ stars, percent });
+  }
+  return buckets;
+}
+
 function normalizeDistribution(value: unknown): TrustpilotRatingBucket[] {
+  if (isRecord(value)) return normalizeDistributionCounts(value);
   if (!Array.isArray(value)) return [];
   const buckets: TrustpilotRatingBucket[] = [];
   for (const item of value) {

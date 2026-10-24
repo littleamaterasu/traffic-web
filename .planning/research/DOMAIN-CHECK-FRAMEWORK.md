@@ -85,17 +85,17 @@ Resulting phases: 5 (persistence + profile), 6 (ad longevity), 7 (affiliate term
 ---
 *Framework analysis: 2026-10-14*
 
-## Current coverage (2026-10-23)
+## Current coverage (2026-10-24)
 
 Based on code reading, not on UI verification. Status: answered / partial / not.
 
 | # | Metric | Status | Source | Planned phase |
 |---|---|---|---|---|
-| 1 | Domain age / history | not | WHOIS/RDAP | Phase 5 |
+| 1 | Domain age / history | answered | WhoisXML WHOIS and WHOIS History panel (age, registrar, nameservers, privacy; history click-to-load) | delivered (Phase 9) |
 | 2 | Business model | not | manual or page scan | Phase 5/7 (unverified exact phase) |
 | 3 | AOV | not | manual | Phase 7 |
 | 4 | Payment gateway / checkout | not | page scan or manual | Phase 5/7 (unverified exact phase) |
-| 5 | Trust / reviews | not | Trustpilot | Phase 5 |
+| 5 | Trust / reviews | answered | Trustpilot panel via the local scraper service (TrustScore, review count, latest 5 reviews; click-to-load) | delivered (Phase 10) |
 | 6 | Monthly visits and trend | answered | TabAPI | Phase 1 era (existing app) |
 | 7 | Traffic source mix | answered | TabAPI | existing app |
 | 8 | Top geos | answered | TabAPI | existing app |
@@ -110,9 +110,9 @@ Based on code reading, not on UI verification. Status: answered / partial / not.
 | 17 | EPC and CR | not | manual | Phase 7 |
 | 18 | Policy restrictions | not | manual | Phase 7 |
 
-**Total: 9/18 answered (8 fully, 1 partial); 9 not covered.** Recount of the table: answered = rows 6-12 and 14 (8), partial = row 13 (1), not = rows 1-5 and 15-18 (9).
+**Total: 11/18 answered (10 fully, 1 partial); 7 not covered.** Recount of the table: answered = rows 1, 5-12 and 14 (10), partial = row 13 (1), not = rows 2, 3, 4 and 15-18 (7).
 
 SE Ranking note (supersedes earlier SE Ranking assumptions): the SE Ranking overview panel was removed; ad copy, competitors and backlinks are click-to-load only. TabAPI is the source of truth because SE Ranking numbers disagreed with the Similarweb extension.
 
 ---
-*Current coverage added: 2026-10-23*
+*Current coverage added: 2026-10-23; updated 2026-10-24 (rows 1 and 5 now answered)*

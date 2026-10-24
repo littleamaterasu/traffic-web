@@ -6,14 +6,20 @@
 - Body (fixed): `{ "domain": "<normalized domain>", "max_pages": 1, "limit": 5 }`
 - Response fields consumed: `success`, `target`, `trustpilot_url`, `business` (`name`, `review_count`, `trust_score`, `stars`, `website`), `reviews[]` (`id`, `author`, `heading`, `body`, `date`, `location`, `rating`).
 
-## Fields the scraper owner should add to match the Trustpilot header exactly
+## Optional business fields (delivered by scraper.py, 2026-10-24)
 
-- `business.logo_url` (string, https URL)
-- `business.claimed_since` (string/date)
-- `business.categories` (string[])
-- `business.rating_distribution` (array of `{ stars, percent }`)
+`scraper.py` now returns these extra keys inside `business`, read from the same Trustpilot `__NEXT_DATA__` JSON (`props.pageProps`) it already parses, with no extra requests:
 
-The panel renders these automatically when present; nothing in the app needs to change.
+- `business.logo_url`: https URL from `businessUnit.profileImageUrl` (the protocol-relative `//...` value gets an `https:` prefix)
+- `business.claimed_since`: ISO date from `businessUnit.activity.claimedDate`, only when `businessUnit.isClaimed` is true (null otherwise)
+- `business.categories`: string[] breadcrumb from `businessUnit.breadcrumb` (`topLevelDisplayName`, `midLevelDisplayName`, `bottomLevelDisplayName`)
+- `business.rating_distribution`: counts object `{ total, one, two, three, four, five }` from `filters.reviewStatistics.ratings`; the web app converts it to percentage buckets per star level
+
+The panel renders these automatically: logo, "Hồ sơ đã xác nhận • MM/YYYY", breadcrumb joined with "›" and a rating-distribution bar chart.
+
+**The scraper process must be restarted** (`python app.py` or the container) to serve the new fields; a server started before the change keeps returning the old `business` object, which the panel handles by hiding the missing parts.
+
+Not exposed on purpose: `businessUnit.contactInfo` (email, address). `numberOfReviewsLast12Months` is available in the same JSON if a future phase wants it.
 
 ## Failure shapes
 

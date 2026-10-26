@@ -20,15 +20,23 @@ function trafficFetch(payload: unknown) {
   }));
 }
 
+async function selectTab(user: ReturnType<typeof userEvent.setup>, name: RegExp) {
+  const tab = screen.getAllByRole("tab", { name })[0];
+  await user.click(tab);
+  expect(tab).toHaveAttribute("aria-selected", "true");
+}
+
 describe("TrafficDashboard", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("hiển thị số tháng lịch sử đã cấu hình", () => {
     render(<TrafficDashboard trafficMonths={6} />);
     expect(screen.getByText("Website intelligence / 6 tháng")).toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "Thanh bên dashboard" })).toBeInTheDocument();
+    expect(screen.getByRole("main")).toHaveAttribute("id", "noi-dung-chinh");
   });
 
-  it("tìm kiếm và hiển thị toàn bộ nhóm dữ liệu", async () => {
+  it("tìm kiếm và chỉ hiển thị nội dung của tab đang chọn", async () => {
     const user = userEvent.setup();
     vi.stubGlobal("fetch", trafficFetch(trafficFixture));
 
@@ -44,18 +52,29 @@ describe("TrafficDashboard", () => {
         signal: expect.any(AbortSignal),
       }),
     );
+    expect(screen.getAllByRole("tab", { name: /Tổng quan/i })[0]).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tabpanel", { name: "Tổng quan" })).toBeInTheDocument();
+    expect(screen.getByText("7 phút 09 giây")).toBeInTheDocument();
+    expect(screen.getByText("31.8%")).toBeInTheDocument();
+    expect(screen.queryByText("Lượt truy cập theo tháng")).not.toBeInTheDocument();
+
+    await selectTab(user, /Kênh & xu hướng/i);
     expect(screen.getByText("Lượt truy cập theo tháng")).toBeInTheDocument();
     expect(screen.getByText("Nguồn traffic")).toBeInTheDocument();
+    expect(screen.getByText("chatgpt.com")).toBeInTheDocument();
+    expect(screen.queryByText("Agentic Infrastructure - Vercel")).not.toBeInTheDocument();
+    expect(container.querySelectorAll(".responsive-table")).toHaveLength(2);
+
+    await selectTab(user, /Thị trường & SEO/i);
     expect(screen.getByText("United States")).toBeInTheDocument();
     expect(screen.getAllByText("vercel").length).toBeGreaterThan(0);
-    expect(screen.getByText("chatgpt.com")).toBeInTheDocument();
-    expect(screen.getByText("31.8%")).toBeInTheDocument();
-    expect(screen.getByText("7 phút 09 giây")).toBeInTheDocument();
     expect(screen.getByText("CPC (USD/click)")).toBeInTheDocument();
     expect(screen.getByText("Giá trị traffic (USD/tháng)")).toBeInTheDocument();
-    expect(container.querySelectorAll(".responsive-table")).toHaveLength(4);
+    expect(screen.getByRole("heading", { level: 2, name: "Tên miền giới thiệu" })).toBeInTheDocument();
+    expect(container.querySelectorAll(".responsive-table")).toHaveLength(2);
     expect(container.querySelector(".overflow-x-auto")).not.toBeInTheDocument();
     expect(container.querySelectorAll("td[data-label]").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("tabpanel", { name: "Kênh và xu hướng" })).not.toBeInTheDocument();
   });
 
   it("mở phần giải thích ý nghĩa và thông số của từng bảng", async () => {
@@ -64,6 +83,8 @@ describe("TrafficDashboard", () => {
 
     render(<TrafficDashboard />);
     await user.click(screen.getByRole("button", { name: "vercel.com" }));
+    await screen.findByText("Agentic Infrastructure - Vercel");
+    await selectTab(user, /Kênh & xu hướng/i);
 
     const monthlyInfoButton = await screen.findByRole("button", {
       name: "Giải thích bảng Lượt truy cập theo tháng",
@@ -81,6 +102,7 @@ describe("TrafficDashboard", () => {
     );
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
+    await selectTab(user, /Thị trường & SEO/i);
     await user.click(
       screen.getByRole("button", { name: "Giải thích bảng Từ khóa hàng đầu" }),
     );
@@ -128,10 +150,12 @@ describe("TrafficDashboard", () => {
     await user.click(screen.getByRole("button", { name: "vercel.com" }));
 
     expect(await screen.findByText("Không tìm thấy độ phủ traffic")).toBeInTheDocument();
+    expect(screen.queryByText("Chưa có dữ liệu referral từ AI assistants.")).not.toBeInTheDocument();
+    await selectTab(user, /Kênh & xu hướng/i);
     expect(screen.getByText("Chưa có dữ liệu referral từ AI assistants.")).toBeInTheDocument();
   });
 
-  it("hiển thị các phần SE Ranking và WHOIS bên dưới panel TabAPI, chỉ tải WHOIS hiện tại và không gọi /api/seranking hay lịch sử WHOIS", async () => {
+  it("chỉ mount panel quảng cáo và WHOIS sau khi chọn đúng tab", async () => {
     const user = userEvent.setup();
     const fetchMock = trafficFetch(trafficFixture);
     vi.stubGlobal("fetch", fetchMock);
@@ -140,10 +164,16 @@ describe("TrafficDashboard", () => {
     await user.click(screen.getByRole("button", { name: "vercel.com" }));
 
     expect(await screen.findByText("Agentic Infrastructure - Vercel")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 2, name: "Mẫu quảng cáo & trang đích (SE Ranking)" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 2, name: "Tuổi thọ & lịch sử domain (WhoisXML)" })).not.toBeInTheDocument();
+
+    await selectTab(user, /Quảng cáo/i);
     expect(screen.getByRole("heading", { level: 2, name: "Mẫu quảng cáo & trang đích (SE Ranking)" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Đối thủ quảng cáo" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Tải mẫu quảng cáo" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Tải đối thủ quảng cáo" })).toBeInTheDocument();
+
+    await selectTab(user, /Tên miền/i);
     expect(screen.getByRole("heading", { level: 2, name: "Tuổi thọ & lịch sử domain (WhoisXML)" })).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Tải lịch sử domain" })).toBeInTheDocument();
     const urls = fetchMock.mock.calls.map((call) => String(call[0]));
@@ -163,6 +193,7 @@ describe("TrafficDashboard", () => {
     await user.click(screen.getByRole("button", { name: "vercel.com" }));
 
     expect(await screen.findByText("Agentic Infrastructure - Vercel")).toBeInTheDocument();
+    await selectTab(user, /Uy tín/i);
     expect(screen.getByRole("heading", { level: 2, name: "Đánh giá Trustpilot" })).toBeInTheDocument();
     const loadButton = screen.getByRole("button", { name: "Tải đánh giá Trustpilot" });
     const trustpilotCalls = () =>
@@ -184,6 +215,7 @@ describe("TrafficDashboard", () => {
     await user.click(screen.getByRole("button", { name: "vercel.com" }));
 
     expect(await screen.findByText("Agentic Infrastructure - Vercel")).toBeInTheDocument();
+    await selectTab(user, /Thị trường & SEO/i);
     expect(screen.getByRole("heading", { level: 2, name: "Tên miền giới thiệu" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Tải backlink" })).toHaveLength(1);
     const referringCalls = () =>
@@ -221,6 +253,7 @@ describe("TrafficDashboard", () => {
     await user.click(screen.getByRole("button", { name: "vercel.com" }));
 
     expect(await screen.findByText("Agentic Infrastructure - Vercel")).toBeInTheDocument();
+    await selectTab(user, /Tên miền/i);
     const alert = await screen.findByText("Chưa cấu hình WHOIS_API_KEY trên máy chủ.");
     expect(alert.closest('[role="alert"]')).not.toBeNull();
   });

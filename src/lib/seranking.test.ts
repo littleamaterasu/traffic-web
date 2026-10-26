@@ -2,10 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   SeRankingApiError,
   clearSeRankingCache,
-  fetchSeRankingBacklinks,
   fetchSeRankingCompetitors,
   fetchSeRankingKeywords,
-  getSeRankingBacklinks,
   getSeRankingCompetitors,
   getSeRankingKeywords,
 } from "./seranking";
@@ -73,27 +71,6 @@ const competitorsUpstream = [
   },
 ];
 
-const backlinksUpstream = {
-  summary: [
-    {
-      target: "acme.com",
-      backlinks: 4210,
-      refdomains: 312,
-      subnets: 190,
-      ips: 205,
-      nofollow_backlinks: 800,
-      dofollow_backlinks: 3410,
-      edu_backlinks: 2,
-      gov_backlinks: 0,
-      inlink_rank: 55,
-      domain_inlink_rank: 61,
-      dofollow_refdomains: 240,
-      top_anchors_by_backlinks: [{ anchor: "acme", backlinks: 900 }],
-      top_anchors_by_refdomains: [{ anchor: "may chay bo", refdomains: 40 }],
-    },
-  ],
-};
-
 describe("SE Ranking client", () => {
   beforeEach(() => clearSeRankingCache());
 
@@ -149,38 +126,6 @@ describe("SE Ranking client", () => {
     ]);
   });
 
-  it("fetchSeRankingBacklinks gọi target= và map summary[0] gồm anchor lists", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(backlinksUpstream));
-
-    const result = await fetchSeRankingBacklinks("acme.com", TEST_KEY, fetchMock as unknown as typeof fetch);
-
-    const url = new URL(String(fetchMock.mock.calls[0][0]));
-    expect(url.origin + url.pathname).toBe("https://api.seranking.com/v1/backlinks/summary");
-    expect(url.searchParams.get("target")).toBe("acme.com");
-    expect(result).toEqual({
-      target: "acme.com",
-      backlinks: 4210,
-      refdomains: 312,
-      dofollow_backlinks: 3410,
-      nofollow_backlinks: 800,
-      dofollow_refdomains: 240,
-      domain_inlink_rank: 61,
-      inlink_rank: 55,
-      top_anchors_by_backlinks: [{ anchor: "acme", backlinks: 900, refdomains: null }],
-      top_anchors_by_refdomains: [{ anchor: "may chay bo", backlinks: null, refdomains: 40 }],
-    });
-  });
-
-  it("backlinks: summary rỗng hoặc thiếu trả null", async () => {
-    const empty = vi.fn().mockResolvedValue(jsonResponse({ summary: [] }));
-    const emptyResult = await fetchSeRankingBacklinks("acme.com", TEST_KEY, empty as unknown as typeof fetch);
-    expect(emptyResult).toBeNull();
-
-    const missing = vi.fn().mockResolvedValue(jsonResponse({}));
-    const missingResult = await fetchSeRankingBacklinks("acme.com", TEST_KEY, missing as unknown as typeof fetch);
-    expect(missingResult).toBeNull();
-  });
-
   it("lỗi 401/403 thành invalid_api_key, 402 thành insufficient_credits, 429 thành rate_limited", async () => {
     const unauthorized = vi.fn().mockResolvedValue(jsonResponse({ error: "bad key" }, 401));
     await expect(fetchSeRankingKeywords("acme.com", "us", 10, TEST_KEY, unauthorized as unknown as typeof fetch))
@@ -233,7 +178,6 @@ describe("SE Ranking client", () => {
     const competitorsMock = vi.fn().mockResolvedValue(jsonResponse(competitorsUpstream));
     await getSeRankingCompetitors("acme.com", "us", 10, TEST_KEY, competitorsMock as unknown as typeof fetch);
     expect(competitorsMock).toHaveBeenCalledTimes(1);
-    expect(String(competitorsMock.mock.calls[0][0])).not.toContain("/backlinks/summary");
   });
 
   it("getSeRankingCompetitors tách cache theo source và limit", async () => {
@@ -243,29 +187,18 @@ describe("SE Ranking client", () => {
     expect(competitorsMock).toHaveBeenCalledTimes(2);
   });
 
-  it("backlinks có store riêng, cùng domain chỉ gọi một lần", async () => {
-    const backlinksMock = vi.fn().mockImplementation(async () => jsonResponse(backlinksUpstream));
-    await getSeRankingBacklinks("acme.com", TEST_KEY, backlinksMock as unknown as typeof fetch);
-    await getSeRankingBacklinks("acme.com", TEST_KEY, backlinksMock as unknown as typeof fetch);
-    expect(backlinksMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("clearSeRankingCache xóa cả ba store", async () => {
+  it("clearSeRankingCache xóa cả hai store", async () => {
     const keywordsMock = vi.fn().mockImplementation(async () => jsonResponse(keywordsUpstream));
     const competitorsMock = vi.fn().mockImplementation(async () => jsonResponse(competitorsUpstream));
-    const backlinksMock = vi.fn().mockImplementation(async () => jsonResponse(backlinksUpstream));
 
     await getSeRankingKeywords("acme.com", "us", 10, TEST_KEY, keywordsMock as unknown as typeof fetch);
     await getSeRankingCompetitors("acme.com", "us", 10, TEST_KEY, competitorsMock as unknown as typeof fetch);
-    await getSeRankingBacklinks("acme.com", TEST_KEY, backlinksMock as unknown as typeof fetch);
     clearSeRankingCache();
     await getSeRankingKeywords("acme.com", "us", 10, TEST_KEY, keywordsMock as unknown as typeof fetch);
     await getSeRankingCompetitors("acme.com", "us", 10, TEST_KEY, competitorsMock as unknown as typeof fetch);
-    await getSeRankingBacklinks("acme.com", TEST_KEY, backlinksMock as unknown as typeof fetch);
 
     expect(keywordsMock).toHaveBeenCalledTimes(2);
     expect(competitorsMock).toHaveBeenCalledTimes(2);
-    expect(backlinksMock).toHaveBeenCalledTimes(2);
   });
 
   it("lỗi không được cache, lần gọi sau phải refetch", async () => {

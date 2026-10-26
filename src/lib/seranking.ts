@@ -1,15 +1,12 @@
 import { createCachedStore } from "@/lib/cached-store";
 import type {
   SeRankingAdKeyword,
-  SeRankingAnchor,
-  SeRankingBacklinks,
   SeRankingCompetitor,
 } from "@/types/seranking";
 
 const SERANKING_BASE_URL = "https://api.seranking.com/v1";
 const KEYWORDS_PATH = "/domain/keywords";
 const COMPETITORS_PATH = "/domain/competitors";
-const BACKLINKS_PATH = "/backlinks/summary";
 const KEYWORD_TYPE = "adv";
 
 export class SeRankingApiError extends Error {
@@ -41,29 +38,6 @@ interface UpstreamCompetitorRow {
   missing_keywords?: number;
   traffic_sum?: number;
   price_sum?: number;
-}
-
-interface UpstreamAnchorRow {
-  anchor?: string;
-  backlinks?: number;
-  refdomains?: number;
-}
-
-interface UpstreamBacklinksEntry {
-  target?: string;
-  backlinks?: number;
-  refdomains?: number;
-  dofollow_backlinks?: number;
-  nofollow_backlinks?: number;
-  dofollow_refdomains?: number;
-  domain_inlink_rank?: number;
-  inlink_rank?: number;
-  top_anchors_by_backlinks?: UpstreamAnchorRow[];
-  top_anchors_by_refdomains?: UpstreamAnchorRow[];
-}
-
-interface UpstreamBacklinksBody {
-  summary?: UpstreamBacklinksEntry[];
 }
 
 function vietnameseError(status: number): string {
@@ -153,30 +127,6 @@ function toCompetitor(raw: UpstreamCompetitorRow): SeRankingCompetitor {
   };
 }
 
-function toAnchors(rows: unknown): SeRankingAnchor[] {
-  if (!Array.isArray(rows)) return [];
-  return rows.map((row) => ({
-    anchor: str(row?.anchor) ?? "",
-    backlinks: num(row?.backlinks),
-    refdomains: num(row?.refdomains),
-  }));
-}
-
-function toBacklinks(raw: UpstreamBacklinksEntry): SeRankingBacklinks {
-  return {
-    target: str(raw.target),
-    backlinks: num(raw.backlinks),
-    refdomains: num(raw.refdomains),
-    dofollow_backlinks: num(raw.dofollow_backlinks),
-    nofollow_backlinks: num(raw.nofollow_backlinks),
-    dofollow_refdomains: num(raw.dofollow_refdomains),
-    domain_inlink_rank: num(raw.domain_inlink_rank),
-    inlink_rank: num(raw.inlink_rank),
-    top_anchors_by_backlinks: toAnchors(raw.top_anchors_by_backlinks),
-    top_anchors_by_refdomains: toAnchors(raw.top_anchors_by_refdomains),
-  };
-}
-
 export async function fetchSeRankingKeywords(
   domain: string,
   source: string,
@@ -211,24 +161,8 @@ export async function fetchSeRankingCompetitors(
   return body.map(toCompetitor);
 }
 
-export async function fetchSeRankingBacklinks(
-  domain: string,
-  apiKey: string,
-  fetchImpl: typeof fetch = fetch,
-): Promise<SeRankingBacklinks | null> {
-  const body = await requestSeRanking<UpstreamBacklinksBody>(
-    BACKLINKS_PATH,
-    { target: domain },
-    apiKey,
-    fetchImpl,
-  );
-  if (!Array.isArray(body?.summary) || body.summary.length === 0) return null;
-  return toBacklinks(body.summary[0]);
-}
-
 const keywordsStore = createCachedStore<SeRankingAdKeyword[]>();
 const competitorsStore = createCachedStore<SeRankingCompetitor[]>();
-const backlinksStore = createCachedStore<SeRankingBacklinks | null>();
 
 export function getSeRankingKeywords(
   domain: string,
@@ -254,18 +188,7 @@ export function getSeRankingCompetitors(
   );
 }
 
-export function getSeRankingBacklinks(
-  domain: string,
-  apiKey: string,
-  fetchImpl: typeof fetch = fetch,
-): Promise<SeRankingBacklinks | null> {
-  return backlinksStore.get(domain, () =>
-    fetchSeRankingBacklinks(domain, apiKey, fetchImpl),
-  );
-}
-
 export function clearSeRankingCache(): void {
   keywordsStore.clear();
   competitorsStore.clear();
-  backlinksStore.clear();
 }

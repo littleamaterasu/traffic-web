@@ -91,8 +91,8 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <section className={`border-[3px] border-[#171710] bg-[#fffdf4] shadow-[7px_7px_0_#171710] ${className}`}>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b-[3px] border-[#171710] bg-[#ffdb1f] px-4 py-3 sm:px-5">
+    <section className={`min-w-0 border-[3px] border-[#171710] bg-[#fffdf4] shadow-[7px_7px_0_#171710] ${className}`}>
+      <div className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b-[3px] border-[#171710] bg-[#ffdb1f] px-4 py-3 sm:px-5">
         <h2 className="text-lg font-black uppercase tracking-[-0.03em] sm:text-xl">{title}</h2>
         <div className="flex max-w-full items-center gap-2">
           {badge ? (
@@ -122,7 +122,7 @@ export function MetricCard({
   hint?: string;
 }) {
   return (
-    <div className={`border-[3px] border-[#171710] p-4 shadow-[5px_5px_0_#171710] ${accent}`}>
+    <div className={`min-h-[7.75rem] border-[3px] border-[#171710] p-4 shadow-[5px_5px_0_#171710] ${accent}`}>
       <p className="mb-3 text-xs font-black uppercase tracking-[0.12em]">{label}</p>
       <p className="break-words text-2xl font-black tracking-[-0.05em] sm:text-3xl">{value}</p>
       {hint ? <p className="mt-2 text-xs font-bold leading-snug">{hint}</p> : null}

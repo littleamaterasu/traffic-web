@@ -301,10 +301,10 @@ function Results({ data }: { data: TrafficResponse }) {
         )}
       </Panel>
 
-      <AdsPanel key={data.domain} domain={data.domain} />
-      <SerankingPanel key={data.domain} domain={data.domain} />
-      <WhoisPanel key={data.domain} domain={data.domain} />
-      <TrustpilotPanel key={data.domain} domain={data.domain} />
+      <AdsPanel key={`ads-${data.domain}`} domain={data.domain} />
+      <SerankingPanel key={`seranking-${data.domain}`} domain={data.domain} />
+      <WhoisPanel key={`whois-${data.domain}`} domain={data.domain} />
+      <TrustpilotPanel key={`trustpilot-${data.domain}`} domain={data.domain} />
     </div>
   );
 }

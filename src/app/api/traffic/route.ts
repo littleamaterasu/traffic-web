@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTrafficMonths } from "@/lib/config";
+import { getTrafficMonths, useFakeTrafficData } from "@/lib/config";
 import { DomainValidationError, normalizeDomain } from "@/lib/domain";
+import { getFakeTraffic } from "@/lib/fake-traffic";
 import { getTraffic, TrafficApiError } from "@/lib/tabapi";
 import type { ApiErrorBody } from "@/types/traffic";
 
@@ -20,7 +21,13 @@ export async function GET(request: NextRequest) {
     return errorResponse(400, "invalid_domain", message);
   }
 
-  const apiKey = process.env.TABAPI_KEY;
+    if (useFakeTrafficData()) {
+      return NextResponse.json(getFakeTraffic(domain), {
+        headers: { "Cache-Control": "private, max-age=0, must-revalidate" },
+      });
+    }
+
+    const apiKey = process.env.TABAPI_KEY;
   if (!apiKey) {
     return errorResponse(500, "missing_api_key", "Chưa cấu hình TABAPI_KEY trên máy chủ.");
   }

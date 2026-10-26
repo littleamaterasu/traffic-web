@@ -105,12 +105,17 @@ export function normalizeReferringSitesBody(
 ): ReferringSitesResult {
   if (!isRecord(body)) throw invalidResponse();
   const backlinks: ReferringBacklink[] = [];
+  const seenDomains = new Set<string>();
   if (Array.isArray(body.backlinks)) {
     for (const item of body.backlinks) {
       if (backlinks.length >= BACKLINK_LIMIT) break;
       if (!isRecord(item)) continue;
       const backlink = normalizeBacklink(item);
-      if (backlink) backlinks.push(backlink);
+      if (!backlink) continue;
+      const domainKey = backlink.from_domain.toLowerCase();
+      if (seenDomains.has(domainKey)) continue;
+      seenDomains.add(domainKey);
+      backlinks.push(backlink);
     }
   }
   return {

@@ -52,6 +52,30 @@ describe("capString", () => {
     expect(capString("   ", 5)).toBeNull();
     expect(capString(5, 5)).toBeNull();
   });
+
+  it("loại ký tự bidi như U+202E và U+2066", () => {
+    expect(capString("abc‮def⁦g⁩", 50)).toBe("abcdefg");
+  });
+
+  it("loại ký tự độ rộng bằng không và BOM", () => {
+    expect(capString("a​b‍c﻿d⁠e", 50)).toBe("abcde");
+  });
+
+  it("thay ký tự điều khiển bằng khoảng trắng và gộp khoảng trắng", () => {
+    expect(capString("a\u0000b\nc\t\u0085d\u007Fe", 50)).toBe("a b c d e");
+  });
+
+  it("trả về null khi chỉ gồm ký tự ẩn", () => {
+    expect(capString("​‮\u0007 ﻿", 10)).toBeNull();
+  });
+
+  it("không cắt đôi cặp surrogate ở ranh giới giới hạn", () => {
+    const result = capString("ab😀cd", 3);
+    expect(result).toBe("ab😀");
+    expect(Array.from(result ?? "")).toHaveLength(3);
+    expect(capString("😀😀😀", 2)).toBe("😀😀");
+    expect(result).not.toMatch(/[\ud800-\udbff](?![\udc00-\udfff])/);
+  });
 });
 
 describe("safeHttpUrl", () => {

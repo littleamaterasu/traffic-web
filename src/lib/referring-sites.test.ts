@@ -206,6 +206,37 @@ describe("normalizeReferringSitesBody", () => {
     expect(result.backlinks[0].from_domain).toBe("ok.example.com");
   });
 
+  it("chỉ giữ backlink đầu tiên của mỗi tên miền nguồn (không phân biệt hoa thường)", () => {
+    const result = normalizeReferringSitesBody({
+      backlinks: [
+        { from_url: "https://Dup.example.com/a", title: "đầu" },
+        { from_url: "https://other.example.com/x", title: "khác" },
+        { from_url: "https://www.dup.example.com/b", title: "trùng" },
+        { from_url: "https://dup.EXAMPLE.com/c", title: "trùng nữa" },
+      ],
+    });
+    expect(result.backlinks.map((item) => item.title)).toEqual(["đầu", "khác"]);
+  });
+
+  it("loại trùng trước khi áp giới hạn 20 mục", () => {
+    const backlinks = [
+      ...Array.from({ length: 10 }, () => ({ from_url: "https://same.example.com/p" })),
+      ...Array.from({ length: 25 }, (_, index) => ({ from_url: `https://s${index}.example.com/p` })),
+    ];
+    const result = normalizeReferringSitesBody({ backlinks });
+    expect(result.backlinks).toHaveLength(20);
+    expect(result.backlinks[0].from_domain).toBe("same.example.com");
+    expect(result.backlinks[19].from_domain).toBe("s18.example.com");
+  });
+
+  it("làm sạch tiêu đề và anchor chứa ký tự bidi", () => {
+    const result = normalizeReferringSitesBody({
+      backlinks: [{ from_url: "https://a.example.com/", title: "x‮y", anchor: "​" }],
+    });
+    expect(result.backlinks[0].title).toBe("xy");
+    expect(result.backlinks[0].anchor).toBeNull();
+  });
+
   it("đặt to_url và to_path về null khi to_url không an toàn nhưng giữ mục", () => {
     const result = normalizeReferringSitesBody({
       backlinks: [

@@ -1,7 +1,16 @@
+const CONTROL_CHARS = /[\u0000-\u001f\u007f-\u009f]/g;
+const INVISIBLE_CHARS = /[​-‏‪-‮⁠-⁤⁦-⁩﻿]/g;
+
 export function capString(value: unknown, max: number): string | null {
   if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed ? trimmed.slice(0, max) : null;
+  const cleaned = value
+    .replace(INVISIBLE_CHARS, "")
+    .replace(CONTROL_CHARS, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return null;
+  const characters = Array.from(cleaned);
+  return characters.length > max ? characters.slice(0, max).join("") : cleaned;
 }
 
 export function clampScore(value: unknown): number | null {

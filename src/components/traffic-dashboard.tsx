@@ -89,7 +89,88 @@ const PANEL_INFO = {
   },
 } satisfies Record<string, PanelInfo>;
 
-function Results({ data }: { data: TrafficResponse }) {
+const REPORT_NAVIGATION = [
+  { id: "tong-quan", label: "Tổng quan", number: "01" },
+  { id: "kenh-xu-huong", label: "Kênh & xu hướng", number: "02" },
+  { id: "thi-truong-seo", label: "Thị trường & SEO", number: "03" },
+  { id: "quang-cao", label: "Quảng cáo", number: "04" },
+  { id: "uy-tin", label: "Uy tín", number: "05" },
+  { id: "ten-mien", label: "Tên miền", number: "06" },
+] as const;
+
+type DashboardView = "tra-cuu" | (typeof REPORT_NAVIGATION)[number]["id"];
+
+function DashboardNavigation({
+  hasReport,
+  activeView,
+  onNavigate,
+  compact = false,
+}: {
+  hasReport: boolean;
+  activeView: DashboardView;
+  onNavigate: (view: DashboardView) => void;
+  compact?: boolean;
+}) {
+  const navigation: ReadonlyArray<{ id: DashboardView; label: string; number: string }> = [
+    { id: "tra-cuu", label: "Tra cứu website", number: "00" },
+    ...(hasReport ? REPORT_NAVIGATION : []),
+  ];
+
+  return (
+    <nav role="tablist" aria-label="Điều hướng dashboard" className={compact ? "dashboard-mobile-nav" : "space-y-2"}>
+      {navigation.map((item) => {
+        const active = item.id === activeView;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            aria-controls={`${item.id}-panel`}
+            onClick={() => onNavigate(item.id)}
+            className={
+              compact
+                ? `dashboard-mobile-nav-item ${active ? "bg-[#ffdb1f]" : "bg-[#fffdf4]"}`
+                : `group flex w-full items-center gap-3 border-2 border-[#171710] px-3 py-2.5 text-left text-sm font-black uppercase shadow-[3px_3px_0_#171710] transition-transform hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none ${
+                    active ? "bg-[#ffdb1f]" : "bg-[#fffdf4]"
+                  }`
+            }
+          >
+            <span className="font-mono text-[0.65rem] font-black text-[#5e5b4d]">{item.number}</span>
+            <span>{item.label}</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+function SectionHeading({
+  id,
+  number,
+  eyebrow,
+  title,
+  description,
+}: {
+  id: string;
+  number: string;
+  eyebrow: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <header className="dashboard-section-heading">
+      <span className="dashboard-section-number">{number}</span>
+      <div className="min-w-0">
+        <p className="font-mono text-[0.68rem] font-black uppercase tracking-[0.16em] text-[#6b6656]">{eyebrow}</p>
+        <h2 id={id} className="mt-1 text-2xl font-black uppercase tracking-[-0.045em] sm:text-3xl">{title}</h2>
+        <p className="mt-1 max-w-3xl text-sm font-bold leading-relaxed text-[#5e5b4d]">{description}</p>
+      </div>
+    </header>
+  );
+}
+
+function Results({ data, activeView }: { data: TrafficResponse; activeView: DashboardView }) {
   const hasCoverage =
     data.overview.visits != null ||
     data.monthly_visits.length > 0 ||
@@ -102,21 +183,30 @@ function Results({ data }: { data: TrafficResponse }) {
     .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
 
   return (
-    <div className="mt-10 space-y-8" aria-live="polite">
-      <section className="border-[3px] border-[#171710] bg-[#171710] text-[#fff8dc] shadow-[8px_8px_0_#ff7139]">
-        <div className="grid gap-5 p-5 md:grid-cols-[1fr_auto] md:items-end md:p-7">
+    <div className="mt-8" aria-live="polite">
+      {activeView === "tong-quan" ? (
+      <section id="tong-quan-panel" role="tabpanel" aria-label="Tổng quan" className="space-y-5">
+        <SectionHeading
+          id="tong-quan-title"
+          number="01"
+          eyebrow="Bức tranh nhanh"
+          title="Tổng quan hiệu suất"
+          description="Các tín hiệu quan trọng nhất để đánh giá quy mô, mức độ tương tác và vị thế của website."
+        />
+        <div className="border-[3px] border-[#171710] bg-[#171710] text-[#fff8dc] shadow-[8px_8px_0_#ff7139]">
+          <div className="grid gap-5 p-5 md:grid-cols-[1fr_auto] md:items-end md:p-7">
           <div>
             <p className="mb-2 font-mono text-xs font-bold uppercase tracking-[0.18em] text-[#ffdb1f]">
               Báo cáo / {formatMonth(data.overview.month)}
             </p>
-            <h1 className="break-all text-3xl font-black tracking-[-0.06em] sm:text-5xl">{data.domain}</h1>
+            <h3 className="break-all text-3xl font-black tracking-[-0.06em] sm:text-5xl">{data.domain}</h3>
             {data.title ? <p className="mt-3 max-w-3xl text-base font-bold text-[#d9d3b8]">{data.title}</p> : null}
           </div>
           <span className="w-fit rotate-[-2deg] border-2 border-[#fff8dc] bg-[#ffdb1f] px-3 py-2 text-xs font-black uppercase text-[#171710]">
             Dữ liệu ước tính
           </span>
+          </div>
         </div>
-      </section>
 
       {!hasCoverage ? (
         <div className="border-[3px] border-[#171710] bg-[#ffb3c7] p-6 text-center shadow-[7px_7px_0_#171710]">
@@ -125,7 +215,7 @@ function Results({ data }: { data: TrafficResponse }) {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-1 gap-4 min-[380px]:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         <MetricCard
           label="Lượt truy cập / tháng"
           value={data.overview.visits == null ? "—" : `${formatCompactNumber(data.overview.visits)} lượt`}
@@ -150,9 +240,20 @@ function Results({ data }: { data: TrafficResponse }) {
         <span className="font-black uppercase">Cách đọc đơn vị:</span>{" "}
         <span><strong>lượt/tháng</strong> là visits ước tính trong tháng; <strong>trang/phiên</strong> là số trang trung bình mỗi lần truy cập; <strong>CPC</strong> là chi phí ước tính cho một click; <strong>điểm %</strong> là chênh lệch giữa hai tỷ lệ phần trăm.</span>
       </aside>
+      </section>
+      ) : null}
 
-      <div className="grid gap-8 xl:grid-cols-2">
-        <Panel title="Lượt truy cập theo tháng" badge="Đơn vị: lượt/tháng" info={PANEL_INFO.monthlyVisits}>
+      {activeView === "kenh-xu-huong" ? (
+      <section id="kenh-xu-huong-panel" role="tabpanel" aria-label="Kênh và xu hướng" className="space-y-5">
+        <SectionHeading
+          id="kenh-xu-huong-title"
+          number="02"
+          eyebrow="Thu hút truy cập"
+          title="Kênh & xu hướng"
+          description="Theo dõi biến động lượt truy cập và cơ cấu các kênh đang đưa người dùng đến website."
+        />
+        <div className="grid items-start gap-6 min-[1400px]:grid-cols-2">
+          <Panel className="h-full" title="Lượt truy cập theo tháng" badge="Đơn vị: lượt/tháng" info={PANEL_INFO.monthlyVisits}>
           {data.monthly_visits.length ? (
             <div className="responsive-table-wrap">
               <table className="responsive-table text-left">
@@ -183,9 +284,9 @@ function Results({ data }: { data: TrafficResponse }) {
           ) : (
             <EmptyCell />
           )}
-        </Panel>
+          </Panel>
 
-        <Panel title="Nguồn traffic" badge={`Tỷ trọng lượt truy cập (%) · ${sources.length}/13 kênh`} info={PANEL_INFO.trafficSources}>
+          <Panel className="h-full" title="Nguồn traffic" badge={`Tỷ trọng lượt truy cập (%) · ${sources.length}/13 kênh`} info={PANEL_INFO.trafficSources}>
           {sources.length ? (
             <div className="divide-y-2 divide-[#171710]">
               {sources.map((source) => (
@@ -202,10 +303,60 @@ function Results({ data }: { data: TrafficResponse }) {
             <EmptyCell />
           )}
         </Panel>
-      </div>
+        </div>
 
-      <div className="grid gap-8 xl:grid-cols-[0.85fr_1.15fr]">
-        <Panel title="Quốc gia hàng đầu" badge="Tỷ trọng lượt truy cập (%)" info={PANEL_INFO.topRegions}>
+        <Panel title="AI assistant referrals" badge="Tỷ trọng trong AI traffic (%)" info={PANEL_INFO.aiReferrals}>
+          {aiTrends.length ? (
+            <div className="responsive-table-wrap">
+              <table className="responsive-table text-left">
+                <thead>
+                  <tr className="border-b-2 border-[#171710] bg-[#f0ebd5] text-xs uppercase tracking-wider">
+                    <th className="px-5 py-3">Assistant</th>
+                    <th className="px-5 py-3 text-right">Mới nhất (%)</th>
+                    <th className="px-5 py-3 text-right">Thay đổi (điểm %)</th>
+                    <th className="px-5 py-3">Lịch sử tỷ trọng (%)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {aiTrends.map((trend) => {
+                    const sorted = [...trend.history].sort((a, b) => b.date.localeCompare(a.date));
+                    const latest = sorted[0]?.value;
+                    const previous = sorted[1]?.value;
+                    const delta = latest != null && previous != null ? latest - previous : null;
+                    return (
+                      <tr key={trend.name} className="border-b-2 border-[#171710] last:border-b-0">
+                        <td data-label="Assistant" className="px-5 py-4 font-black">{trend.name}</td>
+                        <td data-label="Tỷ trọng mới nhất" className="px-5 py-4 text-right font-mono font-bold">{latest == null ? "—" : `${latest.toFixed(1)}%`}</td>
+                        <td data-label="Thay đổi (điểm %)" className="px-5 py-4 text-right font-mono font-black">
+                          {delta == null ? "—" : `${delta >= 0 ? "+" : ""}${delta.toFixed(1)} pt`}
+                        </td>
+                        <td data-label="Lịch sử tỷ trọng" data-stack="true" className="px-5 py-4 font-mono text-xs font-bold">
+                          {sorted.map((point) => `${point.date.slice(0, 7)}: ${point.value.toFixed(1)}%`).join("  /  ") || "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <EmptyCell>Chưa có dữ liệu referral từ AI assistants.</EmptyCell>
+          )}
+          </Panel>
+      </section>
+      ) : null}
+
+      {activeView === "thi-truong-seo" ? (
+      <section id="thi-truong-seo-panel" role="tabpanel" aria-label="Thị trường và SEO" className="space-y-5">
+        <SectionHeading
+          id="thi-truong-seo-title"
+          number="03"
+          eyebrow="Khám phá thị trường"
+          title="Thị trường & SEO"
+          description="Xác định thị trường trọng điểm, chủ đề tìm kiếm và hệ sinh thái website đang liên kết đến domain."
+        />
+        <div className="grid items-start gap-6 xl:grid-cols-[0.82fr_1.18fr]">
+          <Panel className="h-full" title="Quốc gia hàng đầu" badge="Tỷ trọng lượt truy cập (%)" info={PANEL_INFO.topRegions}>
           {data.top_regions.length ? (
             <div className="responsive-table-wrap">
               <table className="responsive-table text-left">
@@ -231,9 +382,9 @@ function Results({ data }: { data: TrafficResponse }) {
           ) : (
             <EmptyCell />
           )}
-        </Panel>
+          </Panel>
 
-        <Panel title="Từ khóa hàng đầu" info={PANEL_INFO.topKeywords}>
+          <Panel className="h-full" title="Từ khóa hàng đầu" info={PANEL_INFO.topKeywords}>
           {data.top_keywords.length ? (
             <div className="responsive-table-wrap">
               <table className="responsive-table text-left">
@@ -260,53 +411,53 @@ function Results({ data }: { data: TrafficResponse }) {
           ) : (
             <EmptyCell />
           )}
-        </Panel>
-      </div>
+          </Panel>
+        </div>
+        <ReferringSitesPanel key={`referring-sites-${data.domain}`} domain={data.domain} />
+      </section>
+      ) : null}
 
-      <Panel title="AI assistant referrals" badge="Tỷ trọng trong AI traffic (%)" info={PANEL_INFO.aiReferrals}>
-        {aiTrends.length ? (
-          <div className="responsive-table-wrap">
-            <table className="responsive-table text-left">
-              <thead>
-                <tr className="border-b-2 border-[#171710] bg-[#f0ebd5] text-xs uppercase tracking-wider">
-                  <th className="px-5 py-3">Assistant</th>
-                  <th className="px-5 py-3 text-right">Mới nhất (%)</th>
-                  <th className="px-5 py-3 text-right">Thay đổi (điểm %)</th>
-                  <th className="px-5 py-3">Lịch sử tỷ trọng (%)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {aiTrends.map((trend) => {
-                  const sorted = [...trend.history].sort((a, b) => b.date.localeCompare(a.date));
-                  const latest = sorted[0]?.value;
-                  const previous = sorted[1]?.value;
-                  const delta = latest != null && previous != null ? latest - previous : null;
-                  return (
-                    <tr key={trend.name} className="border-b-2 border-[#171710] last:border-b-0">
-                      <td data-label="Assistant" className="px-5 py-4 font-black">{trend.name}</td>
-                      <td data-label="Tỷ trọng mới nhất" className="px-5 py-4 text-right font-mono font-bold">{latest == null ? "—" : `${latest.toFixed(1)}%`}</td>
-                      <td data-label="Thay đổi (điểm %)" className="px-5 py-4 text-right font-mono font-black">
-                        {delta == null ? "—" : `${delta >= 0 ? "+" : ""}${delta.toFixed(1)} pt`}
-                      </td>
-                      <td data-label="Lịch sử tỷ trọng" data-stack="true" className="px-5 py-4 font-mono text-xs font-bold">
-                        {sorted.map((point) => `${point.date.slice(0, 7)}: ${point.value.toFixed(1)}%`).join("  /  ") || "—"}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <EmptyCell>Chưa có dữ liệu referral từ AI assistants.</EmptyCell>
-        )}
-      </Panel>
+      {activeView === "quang-cao" ? (
+      <section id="quang-cao-panel" role="tabpanel" aria-label="Quảng cáo" className="space-y-5">
+        <SectionHeading
+          id="quang-cao-title"
+          number="04"
+          eyebrow="Dữ liệu quảng cáo"
+          title="Quảng cáo"
+          description="Kiểm tra dấu hiệu chạy quảng cáo, mẫu nội dung, trang đích và các đối thủ đang cạnh tranh."
+        />
+        <div className="space-y-6">
+          <AdsPanel key={`ads-${data.domain}`} domain={data.domain} />
+          <SerankingPanel key={`seranking-${data.domain}`} domain={data.domain} />
+        </div>
+      </section>
+      ) : null}
 
-      <AdsPanel key={`ads-${data.domain}`} domain={data.domain} />
-      <SerankingPanel key={`seranking-${data.domain}`} domain={data.domain} />
-      <ReferringSitesPanel key={`referring-sites-${data.domain}`} domain={data.domain} />
-      <WhoisPanel key={`whois-${data.domain}`} domain={data.domain} />
-      <TrustpilotPanel key={`trustpilot-${data.domain}`} domain={data.domain} />
+      {activeView === "uy-tin" ? (
+      <section id="uy-tin-panel" role="tabpanel" aria-label="Uy tín" className="space-y-5">
+        <SectionHeading
+          id="uy-tin-title"
+          number="05"
+          eyebrow="Tín hiệu uy tín"
+          title="Uy tín thương hiệu"
+          description="Đối chiếu tín hiệu đánh giá công khai để hiểu chất lượng trải nghiệm và mức độ tin cậy của thương hiệu."
+        />
+        <TrustpilotPanel key={`trustpilot-${data.domain}`} domain={data.domain} />
+      </section>
+      ) : null}
+
+      {activeView === "ten-mien" ? (
+      <section id="ten-mien-panel" role="tabpanel" aria-label="Tên miền" className="space-y-5">
+        <SectionHeading
+          id="ten-mien-title"
+          number="06"
+          eyebrow="Dữ liệu tên miền"
+          title="Hồ sơ tên miền"
+          description="Kiểm tra tuổi đời, nhà đăng ký, trạng thái vận hành và lịch sử thay đổi của domain."
+        />
+        <WhoisPanel key={`whois-${data.domain}`} domain={data.domain} />
+      </section>
+      ) : null}
     </div>
   );
 }
@@ -316,6 +467,7 @@ export function TrafficDashboard({ trafficMonths = 3 }: { trafficMonths?: number
   const [data, setData] = useState<TrafficResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [activeView, setActiveView] = useState<DashboardView>("tra-cuu");
 
   async function search(value: string) {
     const query = value.trim();
@@ -344,6 +496,7 @@ export function TrafficDashboard({ trafficMonths = 3 }: { trafficMonths?: number
       }
 
       setData(body as TrafficResponse);
+      setActiveView("tong-quan");
     } catch (cause) {
       setData(null);
       setError(
@@ -365,103 +518,178 @@ export function TrafficDashboard({ trafficMonths = 3 }: { trafficMonths?: number
   }
 
   return (
-    <main className="min-h-screen px-4 py-6 sm:px-6 lg:px-10 lg:py-10">
-      <div className="mx-auto max-w-[1440px]">
-        <header className="mb-8 flex flex-col gap-5 border-b-[5px] border-[#171710] pb-6 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <div className="mb-4 inline-flex rotate-[-2deg] border-[3px] border-[#171710] bg-[#ff7139] px-3 py-2 font-mono text-xs font-black uppercase shadow-[4px_4px_0_#171710]">
-              Website intelligence / {trafficMonths} tháng
-            </div>
-            <h1 className="max-w-4xl text-5xl font-black uppercase leading-[0.86] tracking-[-0.075em] sm:text-7xl lg:text-8xl">
-              Traffic<br />Check<span className="text-[#ff7139]">!</span>
-            </h1>
-          </div>
-          <p className="max-w-sm border-l-[5px] border-[#171710] pl-4 text-sm font-bold leading-relaxed sm:text-base">
-            Kiểm tra traffic, thứ hạng và nguồn truy cập của bất kỳ website nào bằng dữ liệu ước tính từ TabAPI.
+    <div className="dashboard-shell">
+      <a href="#noi-dung-chinh" className="dashboard-skip-link">Bỏ qua điều hướng</a>
+
+      <aside className="dashboard-sidebar" aria-label="Thanh bên dashboard">
+        <button
+          type="button"
+          onClick={() => setActiveView("tra-cuu")}
+          className="block w-full border-b-[5px] border-[#171710] px-5 py-6 text-left"
+        >
+          <span className="inline-flex rotate-[-2deg] border-[3px] border-[#171710] bg-[#ff7139] px-2 py-1 font-mono text-[0.65rem] font-black uppercase shadow-[3px_3px_0_#171710]">
+            Website intelligence / {trafficMonths} tháng
+          </span>
+          <span className="mt-5 block text-4xl font-black uppercase leading-[0.82] tracking-[-0.075em]">
+            Traffic<br />Check<span className="text-[#ff7139]">!</span>
+          </span>
+        </button>
+
+        <div className="flex min-h-0 flex-1 flex-col px-4 py-5">
+          <p className="mb-3 font-mono text-[0.65rem] font-black uppercase tracking-[0.16em] text-[#6b6656]">
+            Không gian làm việc
           </p>
+          <DashboardNavigation
+            hasReport={Boolean(data && !loading)}
+            activeView={activeView}
+            onNavigate={setActiveView}
+          />
+          <div className="mt-auto border-[3px] border-[#171710] bg-[#b8f5cf] p-3 shadow-[4px_4px_0_#171710]">
+            <p className="font-mono text-[0.65rem] font-black uppercase tracking-wider">Phạm vi dữ liệu</p>
+            <p className="mt-1 text-lg font-black">{trafficMonths} tháng</p>
+            <p className="mt-2 text-xs font-bold leading-relaxed">Dữ liệu ước tính, dùng để nghiên cứu và so sánh.</p>
+          </div>
+        </div>
+      </aside>
+
+      <div className="min-w-0">
+        <header className="dashboard-mobile-header lg:hidden">
+          <button
+            type="button"
+            onClick={() => setActiveView("tra-cuu")}
+            className="text-xl font-black uppercase tracking-[-0.06em]"
+          >
+            Traffic Check<span className="text-[#ff7139]">!</span>
+          </button>
+          <span className="border-2 border-[#171710] bg-[#b8f5cf] px-2 py-1 font-mono text-[0.65rem] font-black uppercase">
+            {trafficMonths} tháng
+          </span>
         </header>
 
-        <section className="border-[4px] border-[#171710] bg-[#ffdb1f] p-4 shadow-[9px_9px_0_#171710] sm:p-6 lg:p-8">
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3 md:flex-row">
-            <label htmlFor="domain" className="sr-only">Tên miền hoặc URL website</label>
-            <input
-              id="domain"
-              type="text"
-              value={domain}
-              onChange={(event) => setDomain(event.target.value)}
-              placeholder="example.com hoặc https://example.com/blog"
-              autoComplete="url"
-              disabled={loading}
-              className="min-w-0 flex-1 border-[3px] border-[#171710] bg-[#fffdf4] px-4 py-4 text-base font-bold shadow-[4px_4px_0_#171710] placeholder:text-[#777261] disabled:opacity-70 sm:text-lg"
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="border-[3px] border-[#171710] bg-[#171710] px-7 py-4 text-base font-black uppercase tracking-wide text-[#fff8dc] shadow-[4px_4px_0_#ff7139] transition-transform hover:-translate-y-0.5 active:translate-x-1 active:translate-y-1 active:shadow-none disabled:cursor-wait disabled:opacity-70 sm:text-lg"
-            >
-              {loading ? "Đang phân tích…" : "Phân tích ngay →"}
-            </button>
-          </form>
+        <main id="noi-dung-chinh" className="px-4 py-5 sm:px-6 sm:py-7 xl:px-8 2xl:px-10">
+          <div className="mx-auto max-w-[1540px]">
+            <header className="dashboard-page-header">
+              <div>
+                <p className="font-mono text-xs font-black uppercase tracking-[0.16em] text-[#6b6656]">
+                  Không gian nghiên cứu website
+                </p>
+                <h1 className="mt-2 max-w-4xl text-4xl font-black uppercase leading-[0.92] tracking-[-0.065em] sm:text-5xl xl:text-6xl">
+                  Bảng điều khiển nghiên cứu website
+                </h1>
+              </div>
+              <div className="max-w-md border-l-[5px] border-[#171710] pl-4">
+                <p className="text-sm font-bold leading-relaxed sm:text-base">
+                  Một báo cáo tổng hợp về traffic, thị trường, quảng cáo, uy tín và hồ sơ tên miền.
+                </p>
+                <span className="mt-3 inline-flex border-2 border-[#171710] bg-[#fffdf4] px-2 py-1 font-mono text-[0.65rem] font-black uppercase shadow-[2px_2px_0_#171710]">
+                  {data && !loading ? `Đang xem: ${data.domain}` : "Sẵn sàng tra cứu"}
+                </span>
+              </div>
+            </header>
 
-          <div className="mt-5 flex flex-wrap items-center gap-2">
-            <span className="mr-1 text-xs font-black uppercase">Thử nhanh:</span>
-            {EXAMPLES.map((example) => (
-              <button
-                key={example}
-                type="button"
-                disabled={loading}
-                onClick={() => {
-                  setDomain(example);
-                  void search(example);
-                }}
-                className="border-2 border-[#171710] bg-[#fff8dc] px-3 py-1.5 font-mono text-xs font-bold shadow-[2px_2px_0_#171710] hover:bg-[#b8f5cf] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-              >
-                {example}
-              </button>
-            ))}
+            <div className="mb-6 lg:hidden">
+              <DashboardNavigation
+                hasReport={Boolean(data && !loading)}
+                activeView={activeView}
+                onNavigate={setActiveView}
+                compact
+              />
+            </div>
+
+            {activeView === "tra-cuu" ? (
+            <div id="tra-cuu-panel" role="tabpanel" aria-label="Tra cứu website">
+            <section className="border-[4px] border-[#171710] bg-[#ffdb1f] p-4 shadow-[8px_8px_0_#171710] sm:p-5 xl:p-6" aria-labelledby="tra-cuu-title">
+              <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="font-mono text-[0.68rem] font-black uppercase tracking-[0.16em]">Điểm bắt đầu</p>
+                  <h2 id="tra-cuu-title" className="text-xl font-black uppercase tracking-[-0.04em] sm:text-2xl">Tra cứu website</h2>
+                </div>
+                <p className="text-xs font-bold">Nhập domain hoặc URL đầy đủ</p>
+              </div>
+              <form onSubmit={handleSubmit} className="flex flex-col gap-3 md:flex-row">
+                <label htmlFor="domain" className="sr-only">Tên miền hoặc URL website</label>
+                <input
+                  id="domain"
+                  type="text"
+                  value={domain}
+                  onChange={(event) => setDomain(event.target.value)}
+                  placeholder="example.com hoặc https://example.com/blog"
+                  autoComplete="url"
+                  disabled={loading}
+                  className="min-w-0 flex-1 border-[3px] border-[#171710] bg-[#fffdf4] px-4 py-3.5 text-base font-bold shadow-[4px_4px_0_#171710] placeholder:text-[#777261] disabled:opacity-70 sm:text-lg"
+                />
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="border-[3px] border-[#171710] bg-[#171710] px-7 py-3.5 text-base font-black uppercase tracking-wide text-[#fff8dc] shadow-[4px_4px_0_#ff7139] transition-transform hover:-translate-y-0.5 active:translate-x-1 active:translate-y-1 active:shadow-none disabled:cursor-wait disabled:opacity-70 sm:text-lg"
+                >
+                  {loading ? "Đang phân tích…" : "Phân tích ngay →"}
+                </button>
+              </form>
+
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="mr-1 text-xs font-black uppercase">Thử nhanh:</span>
+                {EXAMPLES.map((example) => (
+                  <button
+                    key={example}
+                    type="button"
+                    disabled={loading}
+                    onClick={() => {
+                      setDomain(example);
+                      void search(example);
+                    }}
+                    className="border-2 border-[#171710] bg-[#fff8dc] px-3 py-1.5 font-mono text-xs font-bold shadow-[2px_2px_0_#171710] hover:bg-[#b8f5cf] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                  >
+                    {example}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {loading ? (
+              <div className="mt-7 border-[3px] border-[#171710] bg-[#fffdf4] p-5 shadow-[6px_6px_0_#171710]" role="status">
+                <div className="loading-stripes h-5 border-2 border-[#171710]" />
+                <p className="mt-3 text-center font-black uppercase">Đang gọi dữ liệu traffic…</p>
+              </div>
+            ) : null}
+
+            {error ? (
+              <div className="mt-7 border-[3px] border-[#171710] bg-[#ffb3c7] p-5 shadow-[6px_6px_0_#171710]" role="alert">
+                <p className="text-xs font-black uppercase tracking-widest">Có lỗi xảy ra</p>
+                <p className="mt-1 text-lg font-black">{error}</p>
+              </div>
+            ) : null}
+
+            {!data && !loading && !error ? (
+              <section className="mt-8 grid gap-4 md:grid-cols-3" aria-label="Hướng dẫn sử dụng">
+                {[
+                  ["01", "Nhập domain", "Dán tên miền hoặc URL đầy đủ. Hệ thống sẽ tự chuẩn hóa."],
+                  ["02", "Gọi dữ liệu", "API key chỉ được sử dụng ở backend và không xuất hiện trên trình duyệt."],
+                  ["03", "Đọc báo cáo", "Di chuyển theo từng nhóm: tổng quan, kênh, SEO, quảng cáo, uy tín và tên miền."],
+                ].map(([number, title, description], index) => (
+                  <article
+                    key={number}
+                    className={`border-[3px] border-[#171710] p-5 shadow-[5px_5px_0_#171710] ${index === 1 ? "bg-[#b8f5cf]" : "bg-[#fffdf4]"}`}
+                  >
+                    <span className="font-mono text-3xl font-black">{number}</span>
+                    <h2 className="mt-5 text-xl font-black uppercase">{title}</h2>
+                    <p className="mt-2 text-sm font-bold leading-relaxed">{description}</p>
+                  </article>
+                ))}
+              </section>
+            ) : null}
+            </div>
+            ) : null}
+
+            {data && !loading && activeView !== "tra-cuu" ? <Results data={data} activeView={activeView} /> : null}
+
+            <footer className="mt-14 flex flex-col gap-2 border-t-[3px] border-[#171710] py-5 text-xs font-bold uppercase sm:flex-row sm:justify-between">
+              <span>Traffic Check / Local dashboard</span>
+              <span>Dữ liệu là ước tính — không thay thế analytics first-party</span>
+            </footer>
           </div>
-        </section>
-
-        {loading ? (
-          <div className="mt-8 border-[3px] border-[#171710] bg-[#fffdf4] p-5 shadow-[6px_6px_0_#171710]" role="status">
-            <div className="loading-stripes h-5 border-2 border-[#171710]" />
-            <p className="mt-3 text-center font-black uppercase">Đang gọi dữ liệu traffic…</p>
-          </div>
-        ) : null}
-
-        {error ? (
-          <div className="mt-8 border-[3px] border-[#171710] bg-[#ffb3c7] p-5 shadow-[6px_6px_0_#171710]" role="alert">
-            <p className="text-xs font-black uppercase tracking-widest">Có lỗi xảy ra</p>
-            <p className="mt-1 text-lg font-black">{error}</p>
-          </div>
-        ) : null}
-
-        {!data && !loading && !error ? (
-          <section className="mt-10 grid gap-4 md:grid-cols-3" aria-label="Hướng dẫn sử dụng">
-            {[
-              ["01", "Nhập domain", "Dán tên miền hoặc URL đầy đủ. Hệ thống sẽ tự chuẩn hóa."],
-              ["02", "Gọi dữ liệu", "API key chỉ được sử dụng ở backend và không xuất hiện trên trình duyệt."],
-              ["03", "Đọc báo cáo", "Xem traffic, rank, nguồn truy cập, quốc gia, từ khóa và AI referrals."],
-            ].map(([number, title, description], index) => (
-              <article
-                key={number}
-                className={`border-[3px] border-[#171710] p-5 shadow-[5px_5px_0_#171710] ${index === 1 ? "bg-[#b8f5cf]" : "bg-[#fffdf4]"}`}
-              >
-                <span className="font-mono text-3xl font-black">{number}</span>
-                <h2 className="mt-6 text-xl font-black uppercase">{title}</h2>
-                <p className="mt-2 text-sm font-bold leading-relaxed">{description}</p>
-              </article>
-            ))}
-          </section>
-        ) : null}
-
-        {data && !loading ? <Results data={data} /> : null}
-
-        <footer className="mt-14 flex flex-col gap-2 border-t-[3px] border-[#171710] py-5 text-xs font-bold uppercase sm:flex-row sm:justify-between">
-          <span>Traffic Check / Local dashboard</span>
-          <span>Dữ liệu là ước tính — không thay thế analytics first-party</span>
-        </footer>
+        </main>
       </div>
-    </main>
+    </div>
   );
 }

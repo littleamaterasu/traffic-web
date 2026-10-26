@@ -148,6 +148,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 | 261023-fs0 | Fix WHOIS history noise (case-only registrar, renewals, null flapping) and stop exposing registrant text | 2026-10-23 | 052ec67 | [261023-fs0-fix-whois-history-noise-and-registrant-e](./quick/261023-fs0-fix-whois-history-noise-and-registrant-e/) |
 | 261023-fw6 | Harden WHOIS integration after review (registrant leak, purchase budget, www dedup, shape validation, panel abort) | 2026-10-23 | 53e80c1 | [261023-fw6-harden-whois-integration-after-review](./quick/261023-fw6-harden-whois-integration-after-review/) |
 | 261023-mp3 | Harden Trustpilot integration after review (streamed size cap, empty-profile TTL, scrape concurrency limit, config error, star fallback) | 2026-10-23 | 3473ab6 | [261023-mp3-harden-trustpilot-integration-after-revi](./quick/261023-mp3-harden-trustpilot-integration-after-revi/) |
+| 261026-dsh | Refactor frontend into a responsive dashboard shell while preserving the brutalist visual language | 2026-10-26 | — | [261026-dsh-dashboard-layout-refactor](./quick/261026-dsh-dashboard-layout-refactor/) |
+| 261026-tab | Render one dashboard tab panel at a time instead of a long scrolling report | 2026-10-26 | — | [261026-tab-single-panel-navigation](./quick/261026-tab-single-panel-navigation/) |
 
 ## Session Continuity
 

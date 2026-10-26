@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { EmptyCell, MetricCard, Panel } from "@/components/panel";
 import type { PanelInfo } from "@/components/panel";
 import { domainInitial, safeHttpUrl } from "@/lib/backlink-sanitize";
@@ -27,7 +27,7 @@ const REFERRING_SITES_INFO = {
     { label: "Dofollow", meaning: "Tỷ lệ liên kết dofollow trong tổng số backlink và trong số tên miền giới thiệu." },
     { label: "Top backlink", meaning: "Danh sách mẫu các backlink tiêu biểu, gồm tên miền nguồn, tiêu đề trang, anchor và trang đích." },
   ],
-  note: "Danh sách chỉ là mẫu 20 backlink, không phải toàn bộ chỉ mục backlink. Mỗi lần tải tốn 5 credit TabAPI và được lưu cache 24 giờ.",
+  note: "Danh sách chỉ là mẫu 20 backlink, không phải toàn bộ chỉ mục backlink. Mỗi lần tải tốn 5 credit TabAPI; kết quả được lưu cache 24 giờ, riêng kết quả trống chỉ lưu 10 phút.",
 } satisfies PanelInfo;
 
 const buttonClass =
@@ -53,8 +53,49 @@ function isAbortError(cause: unknown): boolean {
   return cause instanceof DOMException && cause.name === "AbortError";
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isNullableNumber(value: unknown): boolean {
+  return value === null || typeof value === "number";
+}
+
+function isValidOverview(value: unknown): boolean {
+  if (value === null) return true;
+  if (!isRecord(value)) return false;
+  return [
+    value.domain_rating,
+    value.backlinks,
+    value.referring_domains,
+    value.dofollow_backlinks_pct,
+    value.dofollow_referring_domains_pct,
+  ].every(isNullableNumber);
+}
+
+function isValidBacklink(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.from_url === "string" &&
+    typeof value.from_domain === "string" &&
+    isNullableNumber(value.domain_rating)
+  );
+}
+
+function isValidResult(value: unknown): value is ReferringSitesResult {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.fetched_at === "string" &&
+    isValidOverview(value.overview) &&
+    Array.isArray(value.backlinks) &&
+    value.backlinks.every(isValidBacklink)
+  );
+}
+
 function isSliceShape(value: unknown): boolean {
-  return typeof value === "object" && value !== null && ("data" in value || "error" in value);
+  if (!isRecord(value)) return false;
+  if (value.error) return true;
+  return "data" in value;
 }
 
 function isReferringSitesResponse(body: unknown): body is ReferringSitesResponse {
@@ -86,11 +127,11 @@ function BacklinkItem({ item }: { item: ReferringBacklink }) {
             <span className="break-all font-black">{item.from_domain}</span>
             {item.domain_rating != null ? (
               <span className="border-2 border-[#171710] bg-[#fff8dc] px-2 py-0.5 text-xs font-black">
-                DR {item.domain_rating}
+                DR {formatNumber(item.domain_rating)}
               </span>
             ) : null}
           </div>
-          <p className="break-words text-sm font-semibold">
+          <p className="break-words text-sm font-semibold [overflow-wrap:anywhere]">
             {fromHref ? (
               <a href={fromHref} target="_blank" rel="noopener noreferrer" className="underline">
                 {title}
@@ -101,15 +142,17 @@ function BacklinkItem({ item }: { item: ReferringBacklink }) {
           </p>
           <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
             {item.anchor ? (
-              <span className="break-words border-2 border-[#171710] bg-[#b8f5cf] px-2 py-0.5">{item.anchor}</span>
+              <span className="min-w-0 max-w-full break-all [overflow-wrap:anywhere] border-2 border-[#171710] bg-[#b8f5cf] px-2 py-0.5">
+                {item.anchor}
+              </span>
             ) : null}
             <span aria-hidden="true">→</span>
             {toHref ? (
-              <a href={toHref} target="_blank" rel="noopener noreferrer" className="break-all underline">
+              <a href={toHref} target="_blank" rel="noopener noreferrer" className="min-w-0 max-w-full break-all underline">
                 {item.to_path ?? item.to_url}
               </a>
             ) : (
-              <span className="break-all">{item.to_path ?? "—"}</span>
+              <span className="min-w-0 max-w-full break-all">{item.to_path ?? "—"}</span>
             )}
           </div>
         </div>
@@ -129,6 +172,7 @@ const IDLE_STATE: LoadState = { requestedDomain: null, phase: "idle" };
 export function ReferringSitesPanel({ domain }: { domain: string }) {
   const [state, setState] = useState<LoadState>(IDLE_STATE);
   const [expanded, setExpanded] = useState(false);
+  const listId = useId();
   const controllerRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
 
@@ -169,10 +213,10 @@ export function ReferringSitesPanel({ domain }: { domain: string }) {
         return;
       }
       if (body.referring_sites.error) {
-        setState({ requestedDomain: domain, phase: "error", message: body.referring_sites.error.message });
+        setState({ requestedDomain: domain, phase: "error", message: readErrorMessage(body.referring_sites, FALLBACK_ERROR_MESSAGE) });
         return;
       }
-      if (!body.referring_sites.data) {
+      if (!isValidResult(body.referring_sites.data)) {
         setState({ requestedDomain: domain, phase: "error", message: FALLBACK_ERROR_MESSAGE });
         return;
       }
@@ -198,12 +242,12 @@ export function ReferringSitesPanel({ domain }: { domain: string }) {
   const overview = result?.overview ?? null;
 
   return (
-    <div aria-live="polite">
+    <div>
       <Panel title="Tên miền giới thiệu" badge="Backlink — không phải lượt truy cập" info={REFERRING_SITES_INFO}>
         <div className="p-4 sm:p-5">
           {view.phase === "idle" ? (
             <p className="text-sm font-bold leading-relaxed text-[#5e5b4d]">
-              Dữ liệu backlink chỉ được tải khi bạn bấm nút, tốn 5 credit TabAPI và được lưu cache 24 giờ.
+              Dữ liệu backlink chỉ được tải khi bạn bấm nút, tốn 5 credit TabAPI. Kết quả được lưu cache 24 giờ, kết quả trống chỉ 10 phút.
             </p>
           ) : null}
           {view.phase === "loading" ? (
@@ -246,13 +290,19 @@ export function ReferringSitesPanel({ domain }: { domain: string }) {
               <h3 className="text-base font-black uppercase">Top backlink</h3>
               {backlinks.length ? (
                 <>
-                  <ul aria-label="Top backlink" className="space-y-3">
+                  <ul id={listId} aria-label="Top backlink" className="space-y-3">
                     {shown.map((item, index) => (
-                      <BacklinkItem key={`${index}-${item.from_domain}`} item={item} />
+                      <BacklinkItem key={`${item.from_url}-${index}`} item={item} />
                     ))}
                   </ul>
                   {remaining > 0 ? (
-                    <button type="button" onClick={() => setExpanded((value) => !value)} className={buttonClass}>
+                    <button
+                      type="button"
+                      aria-expanded={expanded}
+                      aria-controls={listId}
+                      onClick={() => setExpanded((value) => !value)}
+                      className={buttonClass}
+                    >
                       {expanded ? "Ẩn bớt" : `Xem thêm ${remaining} backlink`}
                     </button>
                   ) : null}

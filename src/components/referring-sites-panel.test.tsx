@@ -202,6 +202,100 @@ describe("ReferringSitesPanel", () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
+  it("hiện lỗi dự phòng thay vì crash khi dữ liệu sai dạng", async () => {
+    const user = userEvent.setup();
+    const bad = [
+      { domain: "acme.com", referring_sites: { data: { fetched_at: "x", overview: null, backlinks: "x" }, error: null } },
+      { domain: "acme.com", referring_sites: { data: { fetched_at: "x", overview: null }, error: null } },
+      { domain: "acme.com", referring_sites: { data: { fetched_at: "x", overview: "oops", backlinks: [] }, error: null } },
+      { domain: "acme.com", referring_sites: { data: { fetched_at: "x", overview: { domain_rating: "93" }, backlinks: [] }, error: null } },
+      { domain: "acme.com", referring_sites: { data: { fetched_at: "x", overview: null, backlinks: [null] }, error: null } },
+      { domain: "acme.com", referring_sites: { data: { overview: null, backlinks: [] }, error: null } },
+      { domain: "acme.com", referring_sites: { data: [], error: null } },
+      { domain: "acme.com", referring_sites: { data: null, error: { code: "x", message: 5 } } },
+    ];
+    const fetchMock = vi.fn();
+    for (const body of bad) fetchMock.mockResolvedValueOnce(jsonResponse(body));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<ReferringSitesPanel domain="acme.com" />);
+
+    await user.click(screen.getByRole("button", { name: "Tải backlink" }));
+    for (let index = 0; index < bad.length; index += 1) {
+      expect(await screen.findByRole("alert")).toHaveTextContent("Không thể tải dữ liệu backlink lúc này.");
+      expect(screen.queryByRole("list", { name: "Top backlink" })).not.toBeInTheDocument();
+      if (index < bad.length - 1) await user.click(screen.getByRole("button", { name: "Thử lại" }));
+    }
+    expect(fetchMock).toHaveBeenCalledTimes(bad.length);
+  });
+
+  it("nút Xem thêm có aria-expanded và aria-controls trỏ tới danh sách", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(referringSitesFixture)));
+    render(<ReferringSitesPanel domain="acme.com" />);
+    await user.click(screen.getByRole("button", { name: "Tải backlink" }));
+    const list = await screen.findByRole("list", { name: "Top backlink" });
+
+    const toggle = screen.getByRole("button", { name: "Xem thêm 2 backlink" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(list.id).not.toBe("");
+    expect(toggle).toHaveAttribute("aria-controls", list.id);
+
+    await user.click(toggle);
+    const collapse = screen.getByRole("button", { name: "Ẩn bớt" });
+    expect(collapse).toHaveAttribute("aria-expanded", "true");
+    expect(collapse).toHaveAttribute("aria-controls", list.id);
+  });
+
+  it("chỉ có một vùng thông báo: không có aria-live bao ngoài, lỗi chỉ qua role alert", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ error: { message: "Lỗi." } }, false)));
+    const { container } = render(<ReferringSitesPanel domain="acme.com" />);
+    expect(container.querySelector("[aria-live]")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Tải backlink" }));
+    expect(await screen.findAllByRole("alert")).toHaveLength(1);
+    expect(screen.queryAllByRole("status")).toHaveLength(0);
+    expect(container.querySelector("[aria-live]")).toBeNull();
+  });
+
+  it("DR dạng số lẻ được định dạng theo vi-VN", async () => {
+    const user = userEvent.setup();
+    const payload = clone();
+    payload.referring_sites.data!.backlinks[0].domain_rating = 83.5;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(payload)));
+    render(<ReferringSitesPanel domain="acme.com" />);
+    await user.click(screen.getByRole("button", { name: "Tải backlink" }));
+    const list = await screen.findByRole("list", { name: "Top backlink" });
+
+    expect(within(list).getByText("DR 83,5")).toBeInTheDocument();
+  });
+
+  it("anchor và URL dài không tràn: chip anchor có class ngắt từ và min-w-0", async () => {
+    const user = userEvent.setup();
+    const payload = clone();
+    payload.referring_sites.data!.backlinks[0].anchor = "x".repeat(120);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(payload)));
+    render(<ReferringSitesPanel domain="acme.com" />);
+    await user.click(screen.getByRole("button", { name: "Tải backlink" }));
+    const list = await screen.findByRole("list", { name: "Top backlink" });
+
+    const chip = within(list).getByText("x".repeat(120));
+    expect(chip).toHaveClass("break-all", "min-w-0", "max-w-full");
+    expect(chip.className).toContain("[overflow-wrap:anywhere]");
+    const target = within(list).getAllByRole("link", { name: "/trang-1" })[0];
+    expect(target).toHaveClass("break-all", "min-w-0");
+  });
+
+  it("ghi chú và gợi ý nêu đúng thời gian cache 24 giờ và 10 phút cho kết quả trống", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn());
+    render(<ReferringSitesPanel domain="acme.com" />);
+
+    expect(screen.getByText(/Kết quả được lưu cache 24 giờ, kết quả trống chỉ 10 phút/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Giải thích bảng Tên miền giới thiệu" }));
+    expect(screen.getByText(/kết quả trống chỉ lưu 10 phút/)).toBeInTheDocument();
+  });
+
   it("hiện thông báo quá thời gian khi fetch bị hủy bởi timeout", async () => {
     const user = userEvent.setup();
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new DOMException("aborted", "AbortError")));

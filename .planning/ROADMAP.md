@@ -60,7 +60,7 @@ Plans:
 - [x] 02-01-PLAN.md — Types, sanitizers, TabAPI backlinks client with 24h cache + fixtures
 - [x] 02-02-PLAN.md — Remove SE Ranking backlink feature (A-04)
 - [x] 02-03-PLAN.md — GET /api/referring-sites route + tests
-- [ ] 02-04-PLAN.md — ReferringSitesPanel (click-to-load) + tests
+- [x] 02-04-PLAN.md — ReferringSitesPanel (click-to-load) + tests
 - [ ] 02-05-PLAN.md — Mount panel in dashboard + integration test
 
 **UI hint**: yes
@@ -180,7 +180,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 (Ph
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Groundwork — Reusable Primitives & Cache Factory | 2/2 | Complete    | 2026-10-14 |
-| 2. Referring Sites (Backlinks Slice) | 3/5 | In Progress|  |
+| 2. Referring Sites (Backlinks Slice) | 4/5 | In Progress|  |
 | 3. Related Advertisers & Ad Creatives (SERP Slice) | 0/TBD | Not started (partially delivered outside GSD, 300b113) | - |
 | 4. Consolidated Readable Report | 0/TBD | Not started | - |
 | 5. Persistence & Domain Profile | 0/TBD | Not started | - |

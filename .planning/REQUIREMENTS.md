@@ -14,11 +14,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Referring Sites
 
-- [ ] **REFS-01**: Researcher can load, on explicit click (5 credits, cached 24h), backlink data for the analyzed domain from the TabAPI Backlinks API: overview metrics (domain rating, backlinks, referring domains, dofollow share of backlinks and of referring domains) and a list of top backlinks sampled by TabAPI
-- [ ] **REFS-02**: Researcher sees each top backlink like the AITDK extension: referring domain (from `from_url`), its domain rating (DR) badge, page title, anchor text chip and the linked target page (`to_url`), with safe links and React-text-only rendering
-- [ ] **REFS-03**: Researcher sees the section honestly labeled as link-based referring domains (not visit-weighted traffic) via panel badge and "i" explainer
-- [ ] **REFS-04**: Researcher sees a Vietnamese empty state when the domain has no backlink data, without the report failing
-- [ ] **REFS-05**: Referring-sites requests are cached per domain and deduplicated so repeated lookups within 24h do not re-bill credits
+- [x] **REFS-01**: Researcher can load, on explicit click (5 credits, cached 24h), backlink data for the analyzed domain from the TabAPI Backlinks API: overview metrics (domain rating, backlinks, referring domains, dofollow share of backlinks and of referring domains) and a list of top backlinks sampled by TabAPI
+- [x] **REFS-02**: Researcher sees each top backlink like the AITDK extension: referring domain (from `from_url`), its domain rating (DR) badge, page title, anchor text chip and the linked target page (`to_url`), with safe links and React-text-only rendering
+- [x] **REFS-03**: Researcher sees the section honestly labeled as link-based referring domains (not visit-weighted traffic) via panel badge and "i" explainer
+- [x] **REFS-04**: Researcher sees a Vietnamese empty state when the domain has no backlink data, without the report failing
+- [x] **REFS-05**: Referring-sites requests are cached per domain and deduplicated so repeated lookups within 24h do not re-bill credits
 
 ### Related Advertisers
 
@@ -133,11 +133,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | GRND-01 | Phase 1 | Complete |
 | GRND-02 | Phase 1 | Complete |
-| REFS-01 | Phase 2 | Pending |
-| REFS-02 | Phase 2 | Pending |
-| REFS-03 | Phase 2 | Pending |
-| REFS-04 | Phase 2 | Pending |
-| REFS-05 | Phase 2 | Pending |
+| REFS-01 | Phase 2 | Complete |
+| REFS-02 | Phase 2 | Complete |
+| REFS-03 | Phase 2 | Complete |
+| REFS-04 | Phase 2 | Complete |
+| REFS-05 | Phase 2 | Complete |
 | ADVR-01 | Phase 3 | Partial (via Transparency, 300b113) |
 | ADVR-02 | Phase 3 | Partial |
 | ADVR-03 | Phase 3 | Pending |

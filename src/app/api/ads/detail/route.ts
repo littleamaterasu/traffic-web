@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AdsApiError, getAdDetail } from "@/lib/ads-transparency";
+import { isFakeDataEnabled } from "@/lib/config";
+import { getFakeAdDetail } from "@/lib/fake-domain-data";
 import type { ApiErrorBody } from "@/types/traffic";
 
 export const runtime = "nodejs";
@@ -17,6 +19,12 @@ export async function GET(request: NextRequest) {
 
   if (!ADVERTISER_ID.test(advertiserId) || !CREATIVE_ID.test(creativeId)) {
     return errorResponse(400, "invalid_id", "Mã nhà quảng cáo hoặc creative không hợp lệ.");
+  }
+
+  if (isFakeDataEnabled()) {
+    return NextResponse.json(getFakeAdDetail(advertiserId, creativeId), {
+      headers: { "Cache-Control": "private, max-age=0, must-revalidate" },
+    });
   }
 
   const apiKey = process.env.SERPAPI_KEY;

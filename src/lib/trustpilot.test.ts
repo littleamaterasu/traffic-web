@@ -178,6 +178,32 @@ describe("normalizeTrustpilotBody", () => {
     expect("logo_url" in business(withBusiness({ logo_url: "javascript:x" }))).toBe(false);
   });
 
+  it("chuyển phân bố dạng đếm của scraper sang phần trăm theo từng mức sao", () => {
+    const result = business(
+      withBusiness({
+        rating_distribution: { total: 15255, one: 290, two: 31, three: 29, four: 130, five: 14775 },
+      }),
+    );
+    expect(result.rating_distribution).toEqual([
+      { stars: 1, percent: 1.9 },
+      { stars: 2, percent: 0.2 },
+      { stars: 3, percent: 0.2 },
+      { stars: 4, percent: 0.9 },
+      { stars: 5, percent: 96.9 },
+    ]);
+  });
+
+  it("tính tổng từ các mức sao khi thiếu total và bỏ phân bố khi tổng bằng 0 hoặc không hợp lệ", () => {
+    const noTotal = business(withBusiness({ rating_distribution: { one: 1, five: 3 } }));
+    expect(noTotal.rating_distribution).toEqual([
+      { stars: 1, percent: 25 },
+      { stars: 5, percent: 75 },
+    ]);
+    expect("rating_distribution" in business(withBusiness({ rating_distribution: { total: 0, five: 5 } }))).toBe(false);
+    expect("rating_distribution" in business(withBusiness({ rating_distribution: { total: "x" } }))).toBe(false);
+    expect("rating_distribution" in business(withBusiness({ rating_distribution: "abc" }))).toBe(false);
+  });
+
   it("ném lỗi khi success khác true hoặc body không phải object", () => {
     expect(() => normalizeTrustpilotBody({ success: false }, NOW)).toThrow(TrustpilotApiError);
     expect(() => normalizeTrustpilotBody({ success: false }, NOW)).toThrowError(

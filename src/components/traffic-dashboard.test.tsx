@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { trafficFixture } from "@/test/fixture";
+import { referringSitesFixture } from "@/test/referring-sites-fixture";
 import { trustpilotFixture } from "@/test/trustpilot-fixture";
 import { whoisFixture } from "@/test/whois-fixture";
 import { TrafficDashboard } from "./traffic-dashboard";
@@ -13,6 +14,7 @@ function trafficFetch(payload: unknown) {
       const url = String(input);
       if (url.startsWith("/api/trustpilot")) return trustpilotFixture;
       if (url.startsWith("/api/whois")) return whoisFixture;
+      if (url.startsWith("/api/referring-sites")) return referringSitesFixture;
       return payload;
     },
   }));
@@ -140,10 +142,8 @@ describe("TrafficDashboard", () => {
     expect(await screen.findByText("Agentic Infrastructure - Vercel")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Mẫu quảng cáo & trang đích (SE Ranking)" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Đối thủ quảng cáo" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2, name: "Backlink (SE Ranking)" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Tải mẫu quảng cáo" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Tải đối thủ quảng cáo" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Tải backlink" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Tuổi thọ & lịch sử domain (WhoisXML)" })).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Tải lịch sử domain" })).toBeInTheDocument();
     const urls = fetchMock.mock.calls.map((call) => String(call[0]));
@@ -173,6 +173,28 @@ describe("TrafficDashboard", () => {
 
     expect(await screen.findByText("Acme")).toBeInTheDocument();
     expect(trustpilotCalls()).toEqual(["/api/trustpilot?domain=vercel.com"]);
+  });
+
+  it("hiển thị panel Tên miền giới thiệu, chỉ gọi /api/referring-sites sau khi bấm Tải backlink", async () => {
+    const user = userEvent.setup();
+    const fetchMock = trafficFetch(trafficFixture);
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<TrafficDashboard />);
+    await user.click(screen.getByRole("button", { name: "vercel.com" }));
+
+    expect(await screen.findByText("Agentic Infrastructure - Vercel")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Tên miền giới thiệu" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Tải backlink" })).toHaveLength(1);
+    const referringCalls = () =>
+      fetchMock.mock.calls.map((call) => String(call[0])).filter((url) => url.startsWith("/api/referring-sites"));
+    expect(referringCalls()).toHaveLength(0);
+
+    await user.click(screen.getByRole("button", { name: "Tải backlink" }));
+
+    const list = await screen.findByRole("list", { name: "Top backlink" });
+    expect(list).toHaveTextContent("site-1.example.com");
+    expect(referringCalls()).toEqual(["/api/referring-sites?domain=vercel.com"]);
   });
 
   it("lỗi WHOIS không làm hỏng phần còn lại của báo cáo", async () => {

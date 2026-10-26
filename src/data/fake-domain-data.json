@@ -1,0 +1,250 @@
+{
+  "ads": {
+    "total_results": 6,
+    "creatives": [
+      {
+        "advertiser_id": "AR100000001",
+        "advertiser": "Example Vietnam",
+        "ad_creative_id": "CR100000001",
+        "format": "image",
+        "target_domain": "example.com",
+        "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='250'%3E%3Crect width='100%25' height='100%25' fill='%23ffdb1f'/%3E%3Ctext x='50%25' y='45%25' text-anchor='middle' font-size='25' font-family='Arial' font-weight='700'%3EGIẢI PHÁP SỐ%3C/text%3E%3Ctext x='50%25' y='62%25' text-anchor='middle' font-size='16' font-family='Arial'%3Eexample.com%3C/text%3E%3C/svg%3E",
+        "width": 300,
+        "height": 250,
+        "preview_link": "https://adstransparency.google.com/advertiser/AR100000001/creative/CR100000001",
+        "details_link": "https://adstransparency.google.com/advertiser/AR100000001/creative/CR100000001",
+        "total_days_shown": 184,
+        "first_shown": "2026-04-12",
+        "last_shown": "2026-10-25"
+      },
+      {
+        "advertiser_id": "AR100000001",
+        "advertiser": "Example Vietnam",
+        "ad_creative_id": "CR100000002",
+        "format": "text",
+        "target_domain": "example.com",
+        "image": null,
+        "width": null,
+        "height": null,
+        "preview_link": "https://adstransparency.google.com/advertiser/AR100000001/creative/CR100000002",
+        "details_link": "https://adstransparency.google.com/advertiser/AR100000001/creative/CR100000002",
+        "total_days_shown": 96,
+        "first_shown": "2026-07-15",
+        "last_shown": "2026-10-24"
+      },
+      {
+        "advertiser_id": "AR100000002",
+        "advertiser": "Digital Growth Agency",
+        "ad_creative_id": "CR100000003",
+        "format": "video",
+        "target_domain": "example.com",
+        "image": null,
+        "width": 1920,
+        "height": 1080,
+        "preview_link": "https://adstransparency.google.com/advertiser/AR100000002/creative/CR100000003",
+        "details_link": "https://adstransparency.google.com/advertiser/AR100000002/creative/CR100000003",
+        "total_days_shown": 61,
+        "first_shown": "2026-08-20",
+        "last_shown": "2026-10-23"
+      },
+      {
+        "advertiser_id": "AR100000002",
+        "advertiser": "Digital Growth Agency",
+        "ad_creative_id": "CR100000004",
+        "format": "image",
+        "target_domain": "example.com",
+        "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='728' height='90'%3E%3Crect width='100%25' height='100%25' fill='%23b8f5cf'/%3E%3Ctext x='50%25' y='58%25' text-anchor='middle' font-size='24' font-family='Arial' font-weight='700'%3EDÙNG THỬ MIỄN PHÍ 14 NGÀY%3C/text%3E%3C/svg%3E",
+        "width": 728,
+        "height": 90,
+        "preview_link": "https://adstransparency.google.com/advertiser/AR100000002/creative/CR100000004",
+        "details_link": "https://adstransparency.google.com/advertiser/AR100000002/creative/CR100000004",
+        "total_days_shown": 42,
+        "first_shown": "2026-09-01",
+        "last_shown": "2026-10-18"
+      },
+      {
+        "advertiser_id": "AR100000003",
+        "advertiser": "Example Partner Network",
+        "ad_creative_id": "CR100000005",
+        "format": "text",
+        "target_domain": "example.com",
+        "image": null,
+        "width": null,
+        "height": null,
+        "preview_link": "https://adstransparency.google.com/advertiser/AR100000003/creative/CR100000005",
+        "details_link": "https://adstransparency.google.com/advertiser/AR100000003/creative/CR100000005",
+        "total_days_shown": 213,
+        "first_shown": "2026-02-10",
+        "last_shown": "2026-09-30"
+      },
+      {
+        "advertiser_id": "AR100000003",
+        "advertiser": "Example Partner Network",
+        "ad_creative_id": "CR100000006",
+        "format": "image",
+        "target_domain": "example.com",
+        "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='100'%3E%3Crect width='100%25' height='100%25' fill='%23ffb3c7'/%3E%3Ctext x='50%25' y='58%25' text-anchor='middle' font-size='18' font-family='Arial' font-weight='700'%3ETĂNG TRƯỞNG CÙNG EXAMPLE%3C/text%3E%3C/svg%3E",
+        "width": 320,
+        "height": 100,
+        "preview_link": "https://adstransparency.google.com/advertiser/AR100000003/creative/CR100000006",
+        "details_link": "https://adstransparency.google.com/advertiser/AR100000003/creative/CR100000006",
+        "total_days_shown": 28,
+        "first_shown": "2026-08-05",
+        "last_shown": "2026-09-05"
+      }
+    ],
+    "details": [
+      {
+        "advertiser_id": "AR100000001",
+        "creative_id": "CR100000001",
+        "funded_by": "Example Vietnam Co., Ltd.",
+        "regions": [
+          { "name": "Việt Nam", "last_shown": "2026-10-25" },
+          { "name": "Singapore", "last_shown": "2026-10-20" },
+          { "name": "Thailand", "last_shown": "2026-10-18" }
+        ],
+        "items": [
+          { "snippet": "Nền tảng phân tích dữ liệu và tự động hóa marketing cho doanh nghiệp.", "image": null },
+          { "snippet": "Đăng ký demo miễn phí và nhận báo cáo tăng trưởng dành riêng cho doanh nghiệp của bạn.", "image": null }
+        ]
+      },
+      {
+        "advertiser_id": "AR100000001",
+        "creative_id": "CR100000002",
+        "funded_by": "Example Vietnam Co., Ltd.",
+        "regions": [{ "name": "Việt Nam", "last_shown": "2026-10-24" }],
+        "items": [{ "snippet": "Example — Biến dữ liệu thành quyết định tăng trưởng.", "image": null }]
+      },
+      {
+        "advertiser_id": "AR100000002",
+        "creative_id": "CR100000003",
+        "funded_by": "Digital Growth Agency Pte. Ltd.",
+        "regions": [
+          { "name": "Việt Nam", "last_shown": "2026-10-23" },
+          { "name": "Malaysia", "last_shown": "2026-10-16" }
+        ],
+        "items": [{ "snippet": "Xem cách đội ngũ marketing tăng 38% chuyển đổi trong 90 ngày.", "image": null }]
+      },
+      {
+        "advertiser_id": "AR100000002",
+        "creative_id": "CR100000004",
+        "funded_by": "Digital Growth Agency Pte. Ltd.",
+        "regions": [{ "name": "Việt Nam", "last_shown": "2026-10-18" }],
+        "items": [{ "snippet": "Dùng thử miễn phí 14 ngày — không cần thẻ tín dụng.", "image": null }]
+      },
+      {
+        "advertiser_id": "AR100000003",
+        "creative_id": "CR100000005",
+        "funded_by": "Example Partner Network",
+        "regions": [{ "name": "United States", "last_shown": "2026-09-30" }],
+        "items": [{ "snippet": "Marketing analytics built for fast-moving teams.", "image": null }]
+      },
+      {
+        "advertiser_id": "AR100000003",
+        "creative_id": "CR100000006",
+        "funded_by": "Example Partner Network",
+        "regions": [{ "name": "Japan", "last_shown": "2026-09-05" }],
+        "items": [{ "snippet": "Tăng trưởng cùng hệ sinh thái đối tác Example.", "image": null }]
+      }
+    ]
+  },
+  "referring_sites": {
+    "fetched_at": "2026-10-26T08:00:00.000Z",
+    "overview": {
+      "domain_rating": 78,
+      "backlinks": 184250,
+      "referring_domains": 8420,
+      "dofollow_backlinks_pct": 72.4,
+      "dofollow_referring_domains_pct": 68.9
+    },
+    "backlinks": [
+      { "from_url": "https://vnexpress.net/cong-nghe/nen-tang-du-lieu-doanh-nghiep-481001.html", "from_domain": "vnexpress.net", "to_url": "https://example.com/vi/analytics", "to_path": "/vi/analytics", "title": "Doanh nghiệp Việt tăng tốc bằng dữ liệu", "anchor": "nền tảng Example", "domain_rating": 92 },
+      { "from_url": "https://techinasia.com/companies/example-growth-platform", "from_domain": "techinasia.com", "to_url": "https://example.com/", "to_path": "/", "title": "Vietnamese growth platform expands in Southeast Asia", "anchor": "Example", "domain_rating": 89 },
+      { "from_url": "https://brandsvietnam.com/congdong/topic/analytics-stack-2026", "from_domain": "brandsvietnam.com", "to_url": "https://example.com/vi/resources", "to_path": "/vi/resources", "title": "Marketing analytics stack dành cho SME", "anchor": "báo cáo của Example", "domain_rating": 74 },
+      { "from_url": "https://cafebiz.vn/chuyen-doi-so-doanh-nghiep-vua-va-nho-176261015.htm", "from_domain": "cafebiz.vn", "to_url": "https://example.com/vi", "to_path": "/vi", "title": "Chuyển đổi số trong doanh nghiệp vừa và nhỏ", "anchor": "example.com", "domain_rating": 81 },
+      { "from_url": "https://hubspot.com/partners/example-vietnam", "from_domain": "hubspot.com", "to_url": "https://example.com/integrations/hubspot", "to_path": "/integrations/hubspot", "title": "Example Vietnam — Solutions Partner", "anchor": "Example integration", "domain_rating": 94 },
+      { "from_url": "https://producthunt.com/products/example-analytics", "from_domain": "producthunt.com", "to_url": "https://example.com/product", "to_path": "/product", "title": "Example Analytics — Product Information", "anchor": "Visit website", "domain_rating": 91 },
+      { "from_url": "https://github.com/marketing-tools/awesome-analytics", "from_domain": "github.com", "to_url": "https://example.com/developers", "to_path": "/developers", "title": "Awesome analytics tools", "anchor": "Example API", "domain_rating": 96 },
+      { "from_url": "https://medium.com/growth-vietnam/marketing-dashboard-guide-2026", "from_domain": "medium.com", "to_url": "https://example.com/templates/dashboard", "to_path": "/templates/dashboard", "title": "How to build a useful marketing dashboard", "anchor": "dashboard template", "domain_rating": 95 },
+      { "from_url": "https://topdev.vn/blog/cong-cu-marketing-automation", "from_domain": "topdev.vn", "to_url": "https://example.com/vi/automation", "to_path": "/vi/automation", "title": "Các công cụ marketing automation nổi bật", "anchor": "Example Automation", "domain_rating": 77 },
+      { "from_url": "https://substack.com/@growthnotes/p/data-driven-growth", "from_domain": "substack.com", "to_url": "https://example.com/case-studies", "to_path": "/case-studies", "title": "Data-driven growth notes", "anchor": "case study", "domain_rating": 90 }
+    ]
+  },
+  "seranking": {
+    "ads": [
+      { "keyword": "phần mềm marketing", "position": 1, "block": "top", "url": "https://example.com/vi", "snippet_title": "Nền tảng Marketing Example | Dùng thử miễn phí", "snippet_description": "Phân tích dữ liệu, tự động hóa chiến dịch và báo cáo tăng trưởng trên một nền tảng.", "snippet_display_url": "example.com/vi" },
+      { "keyword": "marketing automation", "position": 2, "block": "top", "url": "https://example.com/vi/automation", "snippet_title": "Tự động hóa Marketing Cho Doanh Nghiệp", "snippet_description": "Tạo hành trình khách hàng đa kênh, đo lường và tối ưu trong thời gian thực.", "snippet_display_url": "example.com/vi/automation" },
+      { "keyword": "dashboard marketing", "position": 1, "block": "top", "url": "https://example.com/templates/dashboard", "snippet_title": "Dashboard Marketing Thời Gian Thực", "snippet_description": "Kết nối dữ liệu quảng cáo, website và CRM trong vài phút.", "snippet_display_url": "example.com/templates/dashboard" },
+      { "keyword": "phân tích website", "position": 3, "block": "top", "url": "https://example.com/vi/analytics", "snippet_title": "Phân Tích Website & Đối Thủ", "snippet_description": "Hiểu nguồn traffic, hành vi và cơ hội tăng trưởng của thị trường.", "snippet_display_url": "example.com/vi/analytics" },
+      { "keyword": "crm cho sme", "position": 1, "block": "bottom", "url": "https://example.com/vi/crm", "snippet_title": "CRM Dễ Dùng Cho SME Việt Nam", "snippet_description": "Quản lý khách hàng và doanh thu với quy trình linh hoạt.", "snippet_display_url": "example.com/vi/crm" },
+      { "keyword": "báo cáo quảng cáo", "position": 4, "block": "bottom", "url": "https://example.com/vi/reporting", "snippet_title": "Tự Động Hóa Báo Cáo Quảng Cáo", "snippet_description": "Tiết kiệm thời gian tổng hợp Facebook, Google và TikTok Ads.", "snippet_display_url": "example.com/vi/reporting" },
+      { "keyword": "customer data platform", "position": 2, "block": "top", "url": "https://example.com/cdp", "snippet_title": "Customer Data Platform For Growth Teams", "snippet_description": "Unify customer data and activate personalized campaigns.", "snippet_display_url": "example.com/cdp" },
+      { "keyword": "công cụ seo", "position": 5, "block": "bottom", "url": "https://example.com/vi/seo", "snippet_title": "Bộ Công Cụ SEO & Content", "snippet_description": "Theo dõi thứ hạng, nội dung và backlink trong cùng một dashboard.", "snippet_display_url": "example.com/vi/seo" },
+      { "keyword": "phần mềm quản lý lead", "position": 2, "block": "bottom", "url": "https://example.com/vi/leads", "snippet_title": "Quản Lý Lead Tập Trung", "snippet_description": "Không bỏ lỡ cơ hội bán hàng từ website và quảng cáo.", "snippet_display_url": "example.com/vi/leads" },
+      { "keyword": "digital marketing platform", "position": 3, "block": "top", "url": "https://example.com/platform", "snippet_title": "One Platform For Digital Growth", "snippet_description": "Plan, execute and measure every campaign with reliable data.", "snippet_display_url": "example.com/platform" }
+    ],
+    "competitors": [
+      { "domain": "growthstack.vn", "common_keywords": 384, "domain_relevance": 91, "total_keywords": 2840, "missing_keywords": 612, "traffic_sum": 486200, "price_sum": 84210.5 },
+      { "domain": "marketflow.io", "common_keywords": 291, "domain_relevance": 84, "total_keywords": 1960, "missing_keywords": 438, "traffic_sum": 328400, "price_sum": 61782.3 },
+      { "domain": "datahub.asia", "common_keywords": 226, "domain_relevance": 78, "total_keywords": 1725, "missing_keywords": 509, "traffic_sum": 275100, "price_sum": 52640.8 },
+      { "domain": "automateplus.com", "common_keywords": 194, "domain_relevance": 73, "total_keywords": 3120, "missing_keywords": 884, "traffic_sum": 593700, "price_sum": 93110.2 },
+      { "domain": "crmcloud.vn", "common_keywords": 167, "domain_relevance": 69, "total_keywords": 1480, "missing_keywords": 361, "traffic_sum": 198600, "price_sum": 38724.6 },
+      { "domain": "insightlab.co", "common_keywords": 142, "domain_relevance": 65, "total_keywords": 1260, "missing_keywords": 297, "traffic_sum": 156300, "price_sum": 29480.9 }
+    ]
+  },
+  "whois": {
+    "created_date": "2016-04-18T00:00:00Z",
+    "updated_date": "2026-03-22T00:00:00Z",
+    "expires_date": "2028-04-18T00:00:00Z",
+    "age_days": 3844,
+    "age_years": 10.5,
+    "age_verdict": { "level": "established", "label": "Domain lâu năm (trên 3 năm)" },
+    "registrar": "NameCheap, Inc.",
+    "status": ["clientTransferProhibited", "clientDeleteProhibited", "clientUpdateProhibited"],
+    "name_servers": ["ns1.example.com", "ns2.example.com"],
+    "privacy_protected": true
+  },
+  "whois_history": {
+    "summary": { "records": 9, "first_seen": "2016-04-18T00:00:00Z", "changes_total": 6, "registrar_changes": 1, "nameserver_changes": 3, "privacy_changes": 2 },
+    "events": [
+      { "date": "2026-03-22T00:00:00Z", "field": "name_servers", "from": "abby.ns.cloudflare.com, sam.ns.cloudflare.com", "to": "ns1.example.com, ns2.example.com" },
+      { "date": "2024-08-09T00:00:00Z", "field": "privacy", "from": "public", "to": "private" },
+      { "date": "2023-01-14T00:00:00Z", "field": "name_servers", "from": "dns1.registrar-servers.com, dns2.registrar-servers.com", "to": "abby.ns.cloudflare.com, sam.ns.cloudflare.com" },
+      { "date": "2021-06-03T00:00:00Z", "field": "registrar", "from": "GoDaddy.com, LLC", "to": "NameCheap, Inc." },
+      { "date": "2019-11-20T00:00:00Z", "field": "privacy", "from": "private", "to": "public" },
+      { "date": "2018-02-01T00:00:00Z", "field": "name_servers", "from": "ns01.domaincontrol.com, ns02.domaincontrol.com", "to": "dns1.registrar-servers.com, dns2.registrar-servers.com" }
+    ],
+    "events_truncated": false
+  },
+  "trustpilot": {
+    "fetched_at": "2026-10-26T08:00:00.000Z",
+    "profile": {
+      "target": "example.com",
+      "trustpilot_url": "https://www.trustpilot.com/review/example.com",
+      "business": {
+        "name": "Example",
+        "review_count": 2847,
+        "trust_score": 4.4,
+        "stars": 4.5,
+        "website": "https://example.com",
+        "logo_url": null,
+        "claimed_since": "2019-06-12",
+        "categories": ["Software company", "Marketing agency", "Business service"],
+        "rating_distribution": [
+          { "stars": 5, "percent": 72 },
+          { "stars": 4, "percent": 17 },
+          { "stars": 3, "percent": 6 },
+          { "stars": 2, "percent": 2 },
+          { "stars": 1, "percent": 3 }
+        ]
+      },
+      "reviews": [
+        { "id": "fake-review-1", "author": "Minh Anh", "heading": "Dashboard rất dễ theo dõi", "body": "Đội marketing của tôi tiết kiệm được nhiều thời gian tổng hợp báo cáo mỗi tuần.", "date": "2026-10-24", "location": "VN", "rating": 5 },
+        { "id": "fake-review-2", "author": "Hoàng Nam", "heading": "Hỗ trợ triển khai tốt", "body": "Nhân viên hỗ trợ nhanh và giải thích rõ cách kết nối dữ liệu quảng cáo.", "date": "2026-10-19", "location": "VN", "rating": 5 },
+        { "id": "fake-review-3", "author": "Sarah Lim", "heading": "Useful regional analytics", "body": "The country and campaign breakdowns are useful for our Southeast Asia team.", "date": "2026-10-11", "location": "SG", "rating": 4 },
+        { "id": "fake-review-4", "author": "Tuấn Phạm", "heading": "Tốt nhưng cần thêm template", "body": "Sản phẩm ổn định, tôi mong có thêm mẫu báo cáo dành cho ecommerce.", "date": "2026-09-28", "location": "VN", "rating": 4 },
+        { "id": "fake-review-5", "author": "David Chen", "heading": "Solid platform", "body": "Setup took some time but the automated reports work reliably after onboarding.", "date": "2026-09-15", "location": "US", "rating": 4 }
+      ]
+    }
+  }
+}

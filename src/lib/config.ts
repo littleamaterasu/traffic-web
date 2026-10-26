@@ -21,6 +21,6 @@ export function getTrafficMonths(value = process.env.TRAFFIC_MONTHS): number {
 
   return months;
 }
-export function useFakeTrafficData(): boolean {
+export function isFakeDataEnabled(): boolean {
   return process.env.USE_FAKE_TRAFFIC_DATA?.trim().toLowerCase() === "true";
 }

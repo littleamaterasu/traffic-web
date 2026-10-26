@@ -124,8 +124,8 @@ describe("TrustpilotPanel", () => {
     await loadReady(
       withBusiness({
         logo_url: "https://cdn.example.com/logo.png",
-        claimed_since: "tháng 3 năm 2020",
-        categories: ["Phần mềm", "Marketing"],
+        claimed_since: "2018-08-07T17:51:31.000Z",
+        categories: ["Điện tử & Công nghệ", "Phần mềm", "Công ty phần mềm"],
         rating_distribution: [
           { stars: 5, percent: 80 },
           { stars: 4, percent: 10 },
@@ -137,12 +137,18 @@ describe("TrustpilotPanel", () => {
     const logo = screen.getByRole("img", { name: "Acme" });
     expect(logo).toHaveAttribute("src", "https://cdn.example.com/logo.png");
     expect(logo).toHaveAttribute("referrerpolicy", "no-referrer");
-    expect(screen.getByText(/Hồ sơ đã xác nhận • tháng 3 năm 2020/)).toBeInTheDocument();
-    expect(screen.getByText(/Phần mềm, Marketing/)).toBeInTheDocument();
+    expect(screen.getByText("Hồ sơ đã xác nhận • 08/2018")).toBeInTheDocument();
+    expect(screen.getByText("Danh mục: Điện tử & Công nghệ › Phần mềm › Công ty phần mềm")).toBeInTheDocument();
     const rows = within(screen.getByRole("list", { name: "Phân bố đánh giá" })).getAllByRole("listitem");
     expect(rows).toHaveLength(5);
     expect(rows[0]).toHaveTextContent("5 sao");
     expect(rows[0]).toHaveTextContent("80%");
+  });
+
+  it("ẩn dòng xác nhận khi ngày xác nhận không đọc được", async () => {
+    await loadReady(withBusiness({ claimed_since: "không phải ngày" }));
+
+    expect(screen.queryByText(/Hồ sơ đã xác nhận/)).not.toBeInTheDocument();
   });
 
   it("không hiện logo khi URL logo không an toàn", async () => {

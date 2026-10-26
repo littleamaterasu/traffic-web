@@ -8,25 +8,6 @@ export interface SeRankingCompetitor {
   price_sum: number | null;
 }
 
-export interface SeRankingAnchor {
-  anchor: string;
-  backlinks: number | null;
-  refdomains: number | null;
-}
-
-export interface SeRankingBacklinks {
-  target: string | null;
-  backlinks: number | null;
-  refdomains: number | null;
-  dofollow_backlinks: number | null;
-  nofollow_backlinks: number | null;
-  dofollow_refdomains: number | null;
-  domain_inlink_rank: number | null;
-  inlink_rank: number | null;
-  top_anchors_by_backlinks: SeRankingAnchor[];
-  top_anchors_by_refdomains: SeRankingAnchor[];
-}
-
 export interface SeRankingSliceError {
   code: string;
   message: string;
@@ -57,9 +38,4 @@ export interface SeRankingCompetitorsResponse {
   domain: string;
   source: string;
   competitors: SeRankingSlice<SeRankingCompetitor[]>;
-}
-
-export interface SeRankingBacklinksResponse {
-  domain: string;
-  backlinks: SeRankingSlice<SeRankingBacklinks>;
 }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isFakeDataEnabled } from "@/lib/config";
 import { TrustpilotApiError, getTrustpilotProfile } from "@/lib/trustpilot";
 import { DomainValidationError, normalizeDomain } from "@/lib/domain";
+import { getFakeTrustpilot } from "@/lib/fake-domain-data";
 import type { ApiErrorBody } from "@/types/traffic";
 import type { TrustpilotResponse, TrustpilotResult, TrustpilotSlice } from "@/types/trustpilot";
 
@@ -28,6 +30,12 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     const message = error instanceof DomainValidationError ? error.message : "Tên miền không hợp lệ.";
     return errorResponse(400, "invalid_domain", message);
+  }
+
+  if (isFakeDataEnabled()) {
+    return NextResponse.json(getFakeTrustpilot(domain), {
+      headers: { "Cache-Control": "private, max-age=0, must-revalidate" },
+    });
   }
 
   const baseUrl = process.env.TRUSTPILOT_SCRAPER_URL?.trim();

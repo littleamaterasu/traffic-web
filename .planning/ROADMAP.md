@@ -12,7 +12,7 @@ A brownfield extension of the working TabAPI-backed traffic dashboard. Four phas
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 1: Groundwork — Reusable Primitives & Cache Factory** - Zero-behavior-change refactor: extract shared panel primitives from the monolith and generalize the traffic cache so new sections plug in without copy-paste (completed 2026-10-14)
-- [ ] **Phase 2: Referring Sites (Backlinks Slice)** - First new report section: top referring domains from the TabAPI Backlinks API, honestly labeled as link-based, with 24h credit-saving cache
+- [x] **Phase 2: Referring Sites (Backlinks Slice)** - First new report section: top referring domains from the TabAPI Backlinks API, honestly labeled as link-based, with 24h credit-saving cache (completed 2026-10-26)
 - [ ] **Phase 3: Related Advertisers & Ad Creatives (SERP Slice)** - Advertisers synthesized from Google Search `paid_results`, plus the creatives view over the same payload (zero extra credits)
 - [ ] **Phase 4: Consolidated Readable Report** - Canonical section order, short Vietnamese takeaways per section, uniform empty-state rendering, and per-section failure isolation
 - [ ] **Phase 5: Persistence & Domain Profile** - Local DB for snapshots and saved inputs, business-sustainability block (WHOIS age + volatility, Trustpilot score/reviews), zero-credit derived callouts (Tier-1 share, brand/non-brand keywords)
@@ -50,12 +50,19 @@ Plans:
 **Requirements**: REFS-01, REFS-02, REFS-03, REFS-04, REFS-05
 **Success Criteria** (what must be TRUE):
 
-  1. Researcher enters a domain and sees a ranked, domain-grouped table of top referring domains, each with its domain rating (DR) and anchor/link context where the API provides it
+  1. Researcher clicks to load backlinks (TabAPI, 5 credits) and sees overview metrics (DR, backlinks, referring domains, dofollow shares) plus a list of top backlinks like the AITDK extension: referring domain, DR badge, page title, anchor chip and linked target page
   2. The section is visibly labeled (panel badge + "i" explainer) as link-based referring domains, distinct from the aggregate referral-traffic share
   3. For a domain with no backlink data, the researcher sees a Vietnamese empty state and the rest of the report keeps rendering — no failure
   4. A repeated lookup of the same domain within 24h is served from cache with in-flight dedup, so Backlink credits are not re-billed
+  5. The SE Ranking backlink section (route, lib, panel, fixtures, tests) is removed so the report has a single backlink source; SE Ranking ads and competitors stay
 
-**Plans**: TBD
+**Plans**: 5 plans
+- [x] 02-01-PLAN.md — Types, sanitizers, TabAPI backlinks client with 24h cache + fixtures
+- [x] 02-02-PLAN.md — Remove SE Ranking backlink feature (A-04)
+- [x] 02-03-PLAN.md — GET /api/referring-sites route + tests
+- [x] 02-04-PLAN.md — ReferringSitesPanel (click-to-load) + tests
+- [x] 02-05-PLAN.md — Mount panel in dashboard + integration test
+
 **UI hint**: yes
 
 ### Phase 3: Related Advertisers & Ad Creatives (SERP Slice)
@@ -173,7 +180,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 (Ph
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Groundwork — Reusable Primitives & Cache Factory | 2/2 | Complete    | 2026-10-14 |
-| 2. Referring Sites (Backlinks Slice) | 0/TBD | Not started | - |
+| 2. Referring Sites (Backlinks Slice) | 5/5 | Complete   | 2026-10-26 |
 | 3. Related Advertisers & Ad Creatives (SERP Slice) | 0/TBD | Not started (partially delivered outside GSD, 300b113) | - |
 | 4. Consolidated Readable Report | 0/TBD | Not started | - |
 | 5. Persistence & Domain Profile | 0/TBD | Not started | - |
@@ -239,7 +246,8 @@ Plans:
 **Plans:** 5/5 plans complete
 
 Plans:
-- [x] TBD (run /gsd-plan-phase 9 to break down) (completed 2026-10-23)
+- [x] TBD (run /gsd-plan-phase 9 to break down)
+ (completed 2026-10-23)
 
 ### Phase 10: Trustpilot panel via local scraper service
 

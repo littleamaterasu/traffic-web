@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isFakeDataEnabled } from "@/lib/config";
 import { WhoisApiError, getWhoisHistory } from "@/lib/whois";
 import { DomainValidationError, normalizeDomain } from "@/lib/domain";
+import { getFakeWhoisHistory } from "@/lib/fake-domain-data";
 import type { ApiErrorBody } from "@/types/traffic";
 import type { WhoisHistory, WhoisHistoryResponse, WhoisSlice } from "@/types/whois";
 
@@ -28,6 +30,12 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     const message = error instanceof DomainValidationError ? error.message : "Tên miền không hợp lệ.";
     return errorResponse(400, "invalid_domain", message);
+  }
+
+  if (isFakeDataEnabled()) {
+    return NextResponse.json(getFakeWhoisHistory(domain), {
+      headers: { "Cache-Control": "private, max-age=0, must-revalidate" },
+    });
   }
 
   const apiKey = process.env.WHOIS_API_KEY;

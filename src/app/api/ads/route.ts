@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AdsApiError, getAds } from "@/lib/ads-transparency";
+import { isFakeDataEnabled } from "@/lib/config";
 import { DomainValidationError, normalizeDomain } from "@/lib/domain";
+import { getFakeAds } from "@/lib/fake-domain-data";
 import type { ApiErrorBody } from "@/types/traffic";
 
 export const runtime = "nodejs";
@@ -24,6 +26,12 @@ export async function GET(request: NextRequest) {
   const pageToken = request.nextUrl.searchParams.get("page_token");
   if (pageToken !== null && !PAGE_TOKEN.test(pageToken)) {
     return errorResponse(400, "invalid_page_token", "Mã trang không hợp lệ.");
+  }
+
+  if (isFakeDataEnabled()) {
+    return NextResponse.json(getFakeAds(domain), {
+      headers: { "Cache-Control": "private, max-age=0, must-revalidate" },
+    });
   }
 
   const apiKey = process.env.SERPAPI_KEY;

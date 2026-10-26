@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isFakeDataEnabled } from "@/lib/config";
 import { SeRankingApiError, getSeRankingCompetitors } from "@/lib/seranking";
 import { DomainValidationError, normalizeDomain } from "@/lib/domain";
+import { getFakeSeRankingCompetitors } from "@/lib/fake-domain-data";
 import type { ApiErrorBody } from "@/types/traffic";
 import type {
   SeRankingCompetitor,
@@ -41,6 +43,12 @@ export async function GET(request: NextRequest) {
   const source = request.nextUrl.searchParams.get("source") ?? DEFAULT_SOURCE;
   if (!SOURCE_PATTERN.test(source)) {
     return errorResponse(400, "invalid_source", "Mã cơ sở dữ liệu khu vực không hợp lệ.");
+  }
+
+  if (isFakeDataEnabled()) {
+    return NextResponse.json(getFakeSeRankingCompetitors(domain, source), {
+      headers: { "Cache-Control": "private, max-age=0, must-revalidate" },
+    });
   }
 
   const apiKey = process.env.SE_RANKING_API_KEY;

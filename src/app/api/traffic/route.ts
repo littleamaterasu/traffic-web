@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTrafficMonths, useFakeTrafficData } from "@/lib/config";
+import { getTrafficMonths, isFakeDataEnabled } from "@/lib/config";
 import { DomainValidationError, normalizeDomain } from "@/lib/domain";
 import { getFakeTraffic } from "@/lib/fake-traffic";
 import { getTraffic, TrafficApiError } from "@/lib/tabapi";
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     return errorResponse(400, "invalid_domain", message);
   }
 
-    if (useFakeTrafficData()) {
+    if (isFakeDataEnabled()) {
       return NextResponse.json(getFakeTraffic(domain), {
         headers: { "Cache-Control": "private, max-age=0, must-revalidate" },
       });

@@ -1,21 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { EmptyCell, MetricCard, Panel } from "@/components/panel";
+import { EmptyCell, Panel } from "@/components/panel";
 import type { PanelInfo } from "@/components/panel";
-import { formatNumber, formatPercent } from "@/lib/format";
+import { formatNumber } from "@/lib/format";
 import { cleanAdTitle } from "@/lib/seranking-ad-title";
 import type {
   SeRankingAdKeyword,
   SeRankingAdsResponse,
-  SeRankingBacklinks,
-  SeRankingBacklinksResponse,
   SeRankingCompetitor,
   SeRankingCompetitorsResponse,
   SeRankingSlice,
 } from "@/types/seranking";
 
-const ANCHOR_LIMIT = 5;
 const REQUEST_TIMEOUT_MS = 20_000;
 const FALLBACK_ERROR_MESSAGE = "Không thể tải dữ liệu SE Ranking lúc này.";
 const TIMEOUT_MESSAGE = "Yêu cầu mất quá nhiều thời gian. Hãy kiểm tra kết nối và thử lại.";
@@ -43,18 +40,6 @@ const SERANKING_INFO = {
       { label: "Traffic", meaning: "Traffic ước tính của đối thủ đến từ nhóm từ khóa chung." },
     ],
     note: "Mỗi lần tải danh sách đối thủ tốn credits của tài khoản SE Ranking nên nội dung chỉ được tải khi bấm nút. Danh sách là ước tính của SE Ranking, có thể khác với các nguồn dữ liệu khác và thay đổi theo thời gian.",
-  },
-  backlinks: {
-    summary:
-      "Bản tóm tắt hồ sơ backlink của tên miền theo SE Ranking: tổng backlink, tên miền trỏ về, tỷ lệ dofollow, điểm uy tín và các anchor được dùng nhiều nhất.",
-    metrics: [
-      { label: "Backlink", meaning: "Tổng số liên kết trỏ về tên miền mà SE Ranking ghi nhận." },
-      { label: "Tên miền trỏ về", meaning: "Số tên miền khác nhau chứa liên kết trỏ về." },
-      { label: "Dofollow", meaning: "Tỷ lệ backlink dofollow (truyền giá trị SEO) trên tổng số backlink." },
-      { label: "Domain InLink Rank", meaning: "Điểm uy tín hồ sơ backlink của tên miền theo thang điểm SE Ranking." },
-      { label: "Anchor", meaning: "Văn bản anchor xuất hiện nhiều nhất trong các backlink trỏ về." },
-    ],
-    note: "Mỗi lần tải tóm tắt backlink tốn credits của tài khoản SE Ranking nên nội dung chỉ được tải khi bấm nút. Số liệu backlink là ước tính và có thể khác với TabAPI.",
   },
 } satisfies Record<string, PanelInfo>;
 
@@ -91,17 +76,6 @@ function isSeRankingCompetitorsResponse(body: unknown): body is SeRankingCompeti
   if (typeof body !== "object" || body === null) return false;
   const candidate = body as Record<string, unknown>;
   return typeof candidate.domain === "string" && isSliceShape(candidate.competitors);
-}
-
-function isSeRankingBacklinksResponse(body: unknown): body is SeRankingBacklinksResponse {
-  if (typeof body !== "object" || body === null) return false;
-  const candidate = body as Record<string, unknown>;
-  return typeof candidate.domain === "string" && isSliceShape(candidate.backlinks);
-}
-
-function formatDofollowShare(data: SeRankingBacklinks): string {
-  if (data.backlinks == null || data.dofollow_backlinks == null || data.backlinks === 0) return "—";
-  return formatPercent(data.dofollow_backlinks / data.backlinks);
 }
 
 function isAbortError(cause: unknown): boolean {
@@ -355,130 +329,11 @@ function CompetitorsPanel({ domain }: { domain: string }) {
   );
 }
 
-type BacklinksState =
-  | { requestedDomain: string | null; phase: "idle" }
-  | { requestedDomain: string | null; phase: "loading" }
-  | { requestedDomain: string | null; phase: "error"; message: string }
-  | { requestedDomain: string | null; phase: "ready"; slice: SeRankingSlice<SeRankingBacklinks> };
-
-const IDLE_BACKLINKS_STATE: BacklinksState = { requestedDomain: null, phase: "idle" };
-
-function BacklinksPanel({ domain }: { domain: string }) {
-  const [state, setState] = useState<BacklinksState>(IDLE_BACKLINKS_STATE);
-
-  async function load() {
-    setState({ requestedDomain: domain, phase: "loading" });
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
-    try {
-      const response = await fetch(`/api/seranking/backlinks?domain=${encodeURIComponent(domain)}`, {
-        headers: NGROK_HEADERS,
-        signal: controller.signal,
-      });
-      let body: unknown = null;
-      try {
-        body = await response.json();
-      } catch {
-        body = null;
-      }
-      if (!response.ok) {
-        setState({ requestedDomain: domain, phase: "error", message: readErrorMessage(body, FALLBACK_ERROR_MESSAGE) });
-        return;
-      }
-      if (!isSeRankingBacklinksResponse(body)) {
-        setState({ requestedDomain: domain, phase: "error", message: FALLBACK_ERROR_MESSAGE });
-        return;
-      }
-      if (body.backlinks.error) {
-        setState({ requestedDomain: domain, phase: "error", message: body.backlinks.error.message });
-        return;
-      }
-      setState({ requestedDomain: domain, phase: "ready", slice: body.backlinks });
-    } catch (cause) {
-      setState({
-        requestedDomain: domain,
-        phase: "error",
-        message: isAbortError(cause) ? TIMEOUT_MESSAGE : FALLBACK_ERROR_MESSAGE,
-      });
-    } finally {
-      window.clearTimeout(timeout);
-    }
-  }
-
-  const view = state.requestedDomain === domain ? state : IDLE_BACKLINKS_STATE;
-  const slice = view.phase === "ready" ? view.slice : null;
-  const data = slice?.data ?? null;
-
-  return (
-    <Panel title="Backlink (SE Ranking)" badge="Nguồn: SE Ranking" info={SERANKING_INFO.backlinks}>
-      <div className="p-4 sm:p-5">
-        <p className="text-xs font-bold leading-relaxed text-[#5e5b4d]">
-          Bản tóm tắt backlink do SE Ranking cung cấp; mỗi lần tải tốn credits của tài khoản SE Ranking,
-          vì vậy chỉ tải khi bạn cần xem số liệu này.
-        </p>
-        {view.phase === "error" ? (
-          <p role="alert" className="mt-3 border-2 border-[#171710] bg-[#ffb3c7] px-3 py-2 text-sm font-black">
-            {view.message}
-          </p>
-        ) : null}
-        {view.phase === "loading" ? (
-          <p role="status" className="mt-3 text-sm font-black uppercase">
-            Đang tải dữ liệu backlink từ SE Ranking…
-          </p>
-        ) : null}
-        {data ? (
-          <>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <MetricCard label="Backlink" value={formatNumber(data.backlinks)} accent="bg-[#b8f5cf]" />
-              <MetricCard label="Tên miền trỏ về" value={formatNumber(data.refdomains)} accent="bg-[#fffdf4]" />
-              <MetricCard label="Dofollow" value={formatDofollowShare(data)} accent="bg-[#ffdb1f]" />
-              <MetricCard
-                label="Domain InLink Rank"
-                value={formatNumber(data.domain_inlink_rank)}
-                accent="bg-[#ffb3c7]"
-              />
-            </div>
-            <div className="mt-4">
-              <h3 className="mb-2 text-sm font-black uppercase tracking-wider">Anchor hàng đầu</h3>
-              {data.top_anchors_by_backlinks.length ? (
-                <ul aria-label="Anchor hàng đầu" className="space-y-1.5">
-                  {data.top_anchors_by_backlinks.slice(0, ANCHOR_LIMIT).map((anchor, index) => (
-                    <li
-                      key={`${index}-${anchor.anchor}`}
-                      className="flex flex-wrap items-baseline justify-between gap-2 border-b border-[#171710]/20 pb-1.5 text-xs"
-                    >
-                      <span className="break-words font-bold">{anchor.anchor}</span>
-                      <span className="font-mono font-black">{formatNumber(anchor.backlinks)}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <EmptyCell>Chưa có anchor nào được ghi nhận.</EmptyCell>
-              )}
-            </div>
-          </>
-        ) : view.phase === "ready" ? (
-          <EmptyCell>SE Ranking chưa có dữ liệu backlink cho tên miền này.</EmptyCell>
-        ) : null}
-        {view.phase !== "ready" ? (
-          <div className="mt-3">
-            <button type="button" onClick={() => void load()} disabled={view.phase === "loading"} className={buttonClass}>
-              {view.phase === "error" ? "Thử lại" : "Tải backlink"}
-            </button>
-          </div>
-        ) : null}
-      </div>
-    </Panel>
-  );
-}
-
 export function SerankingPanel({ domain }: { domain: string }) {
   return (
     <div className="space-y-6" aria-live="polite">
       <AdsPanel domain={domain} />
       <CompetitorsPanel domain={domain} />
-      <BacklinksPanel domain={domain} />
     </div>
   );
 }

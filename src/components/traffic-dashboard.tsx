@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { AdsPanel } from "@/components/ads-panel";
+import { ReferringSitesPanel } from "@/components/referring-sites-panel";
 import { SerankingPanel } from "@/components/seranking-panel";
 import { WhoisPanel } from "@/components/whois-panel";
 import { TrustpilotPanel } from "@/components/trustpilot-panel";
@@ -303,6 +304,7 @@ function Results({ data }: { data: TrafficResponse }) {
 
       <AdsPanel key={data.domain} domain={data.domain} />
       <SerankingPanel key={data.domain} domain={data.domain} />
+      <ReferringSitesPanel key={data.domain} domain={data.domain} />
       <WhoisPanel key={data.domain} domain={data.domain} />
       <TrustpilotPanel key={data.domain} domain={data.domain} />
     </div>

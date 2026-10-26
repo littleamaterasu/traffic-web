@@ -50,12 +50,19 @@ Plans:
 **Requirements**: REFS-01, REFS-02, REFS-03, REFS-04, REFS-05
 **Success Criteria** (what must be TRUE):
 
-  1. Researcher enters a domain and sees a ranked, domain-grouped table of top referring domains, each with its domain rating (DR) and anchor/link context where the API provides it
+  1. Researcher clicks to load backlinks (TabAPI, 5 credits) and sees overview metrics (DR, backlinks, referring domains, dofollow shares) plus a list of top backlinks like the AITDK extension: referring domain, DR badge, page title, anchor chip and linked target page
   2. The section is visibly labeled (panel badge + "i" explainer) as link-based referring domains, distinct from the aggregate referral-traffic share
   3. For a domain with no backlink data, the researcher sees a Vietnamese empty state and the rest of the report keeps rendering — no failure
   4. A repeated lookup of the same domain within 24h is served from cache with in-flight dedup, so Backlink credits are not re-billed
+  5. The SE Ranking backlink section (route, lib, panel, fixtures, tests) is removed so the report has a single backlink source; SE Ranking ads and competitors stay
 
-**Plans**: TBD
+**Plans**: 5 plans
+- [ ] 02-01-PLAN.md — Types, sanitizers, TabAPI backlinks client with 24h cache + fixtures
+- [ ] 02-02-PLAN.md — Remove SE Ranking backlink feature (A-04)
+- [ ] 02-03-PLAN.md — GET /api/referring-sites route + tests
+- [ ] 02-04-PLAN.md — ReferringSitesPanel (click-to-load) + tests
+- [ ] 02-05-PLAN.md — Mount panel in dashboard + integration test
+
 **UI hint**: yes
 
 ### Phase 3: Related Advertisers & Ad Creatives (SERP Slice)
@@ -239,7 +246,8 @@ Plans:
 **Plans:** 5/5 plans complete
 
 Plans:
-- [x] TBD (run /gsd-plan-phase 9 to break down) (completed 2026-10-23)
+- [x] TBD (run /gsd-plan-phase 9 to break down)
+ (completed 2026-10-23)
 
 ### Phase 10: Trustpilot panel via local scraper service
 

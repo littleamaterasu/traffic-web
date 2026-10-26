@@ -14,8 +14,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Referring Sites
 
-- [ ] **REFS-01**: Researcher can view top referring domains for the analyzed domain, sourced from the TabAPI Backlinks API (5 credits)
-- [ ] **REFS-02**: Researcher sees each referring domain with its domain rating (DR) and anchor/link context where the API provides it
+- [ ] **REFS-01**: Researcher can load, on explicit click (5 credits, cached 24h), backlink data for the analyzed domain from the TabAPI Backlinks API: overview metrics (domain rating, backlinks, referring domains, dofollow share of backlinks and of referring domains) and a list of top backlinks sampled by TabAPI
+- [ ] **REFS-02**: Researcher sees each top backlink like the AITDK extension: referring domain (from `from_url`), its domain rating (DR) badge, page title, anchor text chip and the linked target page (`to_url`), with safe links and React-text-only rendering
 - [ ] **REFS-03**: Researcher sees the section honestly labeled as link-based referring domains (not visit-weighted traffic) via panel badge and "i" explainer
 - [ ] **REFS-04**: Researcher sees a Vietnamese empty state when the domain has no backlink data, without the report failing
 - [ ] **REFS-05**: Referring-sites requests are cached per domain and deduplicated so repeated lookups within 24h do not re-bill credits
@@ -85,7 +85,7 @@ Source: domain-check checklist; analysis and decisions in `.planning/research/DO
 - [~] ~~**SERK-01**: Researcher sees worldwide organic and paid keyword count, estimated traffic and traffic value from SE Ranking `domain/overview/worldwide`, labeled as SE Ranking estimates distinct from TabAPI~~ Dropped 2026-10-23: SE Ranking overview overlaps TabAPI and the numbers disagree
 - [x] **SERK-02**: Researcher can load, on explicit click, SE Ranking ad copy (title/description/display URL) and landing page for paid keywords from `domain/keywords?type=adv` (source db `us` by default, top 10); volume/CPC intentionally not shown
 - [x] **SERK-03**: Researcher can load advertiser competitors from `domain/competitors?type=adv` only by explicit click (never automatically), with common-keyword counts and relevance
-- [x] **SERK-04**: Researcher can load, on explicit click only (never automatically; ~100 credits), a backlinks summary from `backlinks/summary` (backlinks, referring domains, dofollow share, domain inlink rank, top anchors)
+- [~] **SERK-04**: ~~Researcher can load a backlinks summary from SE Ranking `backlinks/summary`~~ — DROPPED 2026-10-26: SE Ranking backlink counts disagree with AITDK, TabAPI matches AITDK (canva.com: TabAPI 58.35M backlinks / 449.6K referring domains / DR 93 vs SE Ranking 42.99M / 580.3K); replaced by REFS-01/REFS-02 (TabAPI)
 - [x] **SERK-05**: `SE_RANKING_API_KEY` is read server-side only; absent key, upstream error or empty data yields a Vietnamese state without failing the report; results are cached 24h with in-flight dedup via `createCachedStore`; competitors, backlinks and ad copy are fetched on demand only
 
 **Affiliate Terms (three-tier data)**
@@ -169,7 +169,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SERK-01 | Phase 8 | Dropped |
 | SERK-02 | Phase 8 | Complete |
 | SERK-03 | Phase 8 | Complete |
-| SERK-04 | Phase 8 | Complete |
+| SERK-04 | Phase 8 | Dropped (replaced by REFS-01/02, Phase 2) |
 | SERK-05 | Phase 8 | Complete |
 
 Note: Phase 8 human UAT is still pending; the SERK statuses reflect code, not UI verification. ADVR-03/04 stay Pending (the SERP `paid_results` behavior does not exist).

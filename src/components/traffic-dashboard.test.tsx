@@ -140,10 +140,8 @@ describe("TrafficDashboard", () => {
     expect(await screen.findByText("Agentic Infrastructure - Vercel")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Mẫu quảng cáo & trang đích (SE Ranking)" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Đối thủ quảng cáo" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2, name: "Backlink (SE Ranking)" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Tải mẫu quảng cáo" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Tải đối thủ quảng cáo" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Tải backlink" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Tuổi thọ & lịch sử domain (WhoisXML)" })).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Tải lịch sử domain" })).toBeInTheDocument();
     const urls = fetchMock.mock.calls.map((call) => String(call[0]));

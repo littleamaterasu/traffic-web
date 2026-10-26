@@ -1,21 +1,12 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  serankingAdsFixture,
-  serankingBacklinksFixture,
-  serankingCompetitorsFixture,
-} from "@/test/seranking-fixture";
-import type {
-  SeRankingAdsResponse,
-  SeRankingBacklinksResponse,
-  SeRankingCompetitorsResponse,
-} from "@/types/seranking";
+import { serankingAdsFixture, serankingCompetitorsFixture } from "@/test/seranking-fixture";
+import type { SeRankingAdsResponse, SeRankingCompetitorsResponse } from "@/types/seranking";
 import { SerankingPanel } from "./seranking-panel";
 
 type FetchPayload =
   | SeRankingAdsResponse
-  | SeRankingBacklinksResponse
   | SeRankingCompetitorsResponse
   | Record<string, unknown>;
 
@@ -30,7 +21,7 @@ function jsonResponse(body: FetchPayload, ok = true) {
 describe("SerankingPanel", () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it("không gọi fetch khi mount và hiển thị ba phần cùng ba nút tải", () => {
+  it("không gọi fetch khi mount và hiển thị hai phần cùng hai nút tải", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
@@ -39,11 +30,9 @@ describe("SerankingPanel", () => {
     expect(fetchMock).not.toHaveBeenCalled();
     expect(screen.getByRole("heading", { level: 2, name: "Mẫu quảng cáo & trang đích (SE Ranking)" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Đối thủ quảng cáo" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2, name: "Backlink (SE Ranking)" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Tải mẫu quảng cáo" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Tải đối thủ quảng cáo" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Tải backlink" })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: /Giải thích bảng/ })).toHaveLength(3);
+    expect(screen.getAllByRole("button", { name: /Giải thích bảng/ })).toHaveLength(2);
   });
 
   it("hiển thị dòng giải thích credits và badge nguồn cho mẫu quảng cáo", () => {
@@ -324,7 +313,7 @@ describe("SerankingPanel", () => {
     await user.click(screen.getByRole("button", { name: "Tải đối thủ quảng cáo" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("SE Ranking đang quá tải, thử lại sau.");
-    expect(screen.getByRole("button", { name: "Tải backlink" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tải mẫu quảng cáo" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Thử lại" }));
     expect(await screen.findByText("rival-one.com")).toBeInTheDocument();
@@ -363,155 +352,5 @@ describe("SerankingPanel", () => {
 
     expect(await screen.findByRole("button", { name: "Tải đối thủ quảng cáo" })).toBeInTheDocument();
     expect(screen.queryByText("rival-one.com")).not.toBeInTheDocument();
-  });
-
-  it("không bao giờ gọi /api/seranking/backlinks khi mount hay khi domain không đổi", () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
-
-    const { rerender } = render(<SerankingPanel domain="acme.com" />);
-    rerender(<SerankingPanel domain="acme.com" />);
-
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it("bấm Tải backlink gọi đúng một lần /api/seranking/backlinks và hiển thị tỷ lệ dofollow 75.0%", async () => {
-    const user = userEvent.setup();
-    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(serankingBacklinksFixture));
-    vi.stubGlobal("fetch", fetchMock);
-
-    render(<SerankingPanel domain="acme.com" />);
-    await user.click(screen.getByRole("button", { name: "Tải backlink" }));
-
-    expect(await screen.findByText("75.0%")).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenLastCalledWith(
-      "/api/seranking/backlinks?domain=acme.com",
-      expect.objectContaining({
-        headers: { "ngrok-skip-browser-warning": "true" },
-        signal: expect.any(AbortSignal),
-      }),
-    );
-    expect(screen.queryByRole("button", { name: "Tải backlink" })).not.toBeInTheDocument();
-    expect(screen.getByText("1.000")).toBeInTheDocument();
-    expect(screen.getByText("150")).toBeInTheDocument();
-    expect(screen.getByText("87,5")).toBeInTheDocument();
-    expect(screen.getByText("click here")).toBeInTheDocument();
-  });
-
-  it("vô hiệu nút và hiển thị role=status trong khi đang tải backlink", async () => {
-    const user = userEvent.setup();
-    let resolveBacklinks: (value: ReturnType<typeof jsonResponse>) => void = () => {};
-    const fetchMock = vi.fn().mockImplementationOnce(
-      () =>
-        new Promise((resolve) => {
-          resolveBacklinks = resolve as typeof resolveBacklinks;
-        }),
-    );
-    vi.stubGlobal("fetch", fetchMock);
-
-    render(<SerankingPanel domain="acme.com" />);
-    const button = screen.getByRole("button", { name: "Tải backlink" });
-    await user.click(button);
-
-    expect(button).toBeDisabled();
-    expect(screen.getByRole("status")).toHaveTextContent(/backlink/i);
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-
-    resolveBacklinks(jsonResponse(serankingBacklinksFixture));
-    expect(await screen.findByText("75.0%")).toBeInTheDocument();
-  });
-
-  it("lỗi khi tải backlink hiển thị alert và nút Thử lại để thử lại", async () => {
-    const user = userEvent.setup();
-    const fetchMock = vi.fn().mockRejectedValueOnce(new TypeError("Network error"));
-    vi.stubGlobal("fetch", fetchMock);
-
-    render(<SerankingPanel domain="acme.com" />);
-    await user.click(screen.getByRole("button", { name: "Tải backlink" }));
-
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Không thể tải dữ liệu SE Ranking lúc này.",
-    );
-    expect(screen.getByRole("button", { name: "Thử lại" })).toBeInTheDocument();
-
-    fetchMock.mockResolvedValueOnce(jsonResponse(serankingBacklinksFixture));
-    await user.click(screen.getByRole("button", { name: "Thử lại" }));
-    expect(await screen.findByText("75.0%")).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  it("lỗi slice backlinks hiển thị alert với thông điệp máy chủ và nút Thử lại", async () => {
-    const user = userEvent.setup();
-    const errorBacklinks = clone(serankingBacklinksFixture);
-    errorBacklinks.backlinks = {
-      data: null,
-      error: { code: "insufficient_credits", message: "Tài khoản SE Ranking không đủ credits." },
-    };
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(errorBacklinks)));
-
-    render(<SerankingPanel domain="acme.com" />);
-    await user.click(screen.getByRole("button", { name: "Tải backlink" }));
-
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Tài khoản SE Ranking không đủ credits.",
-    );
-    expect(screen.getByRole("button", { name: "Thử lại" })).toBeInTheDocument();
-    expect(screen.queryByText("75.0%")).not.toBeInTheDocument();
-  });
-
-  it("hiển thị EmptyCell khi backlinks trả về null mà không có lỗi", async () => {
-    const user = userEvent.setup();
-    const nullBacklinks = clone(serankingBacklinksFixture);
-    nullBacklinks.backlinks = { data: null, error: null };
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(nullBacklinks)));
-
-    render(<SerankingPanel domain="acme.com" />);
-    await user.click(screen.getByRole("button", { name: "Tải backlink" }));
-
-    expect(
-      await screen.findByText("SE Ranking chưa có dữ liệu backlink cho tên miền này."),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Tải backlink" })).not.toBeInTheDocument();
-  });
-
-  it("hiển thị tối đa 5 anchor hàng đầu theo backlinks", async () => {
-    const user = userEvent.setup();
-    const payload = clone(serankingBacklinksFixture);
-    const anchorData = payload.backlinks.data;
-    if (anchorData) {
-      anchorData.top_anchors_by_backlinks = Array.from({ length: 7 }, (_, index) => ({
-        anchor: `anchor ${index + 1}`,
-        backlinks: 100 - index,
-        refdomains: 10 + index,
-      }));
-    }
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(payload)));
-
-    render(<SerankingPanel domain="acme.com" />);
-    await user.click(screen.getByRole("button", { name: "Tải backlink" }));
-
-    const anchorList = await screen.findByRole("list", { name: "Anchor hàng đầu" });
-    expect(within(anchorList).getAllByRole("listitem")).toHaveLength(5);
-    expect(within(anchorList).getByText("anchor 5")).toBeInTheDocument();
-    expect(within(anchorList).queryByText("anchor 6")).not.toBeInTheDocument();
-  });
-
-  it("đặt lại về nút Tải backlink khi domain thay đổi và không tự gọi lại backlinks", async () => {
-    const user = userEvent.setup();
-    const fetchMock = vi.fn(async () => jsonResponse(serankingBacklinksFixture));
-    vi.stubGlobal("fetch", fetchMock);
-
-    const { rerender } = render(<SerankingPanel domain="acme.com" />);
-    await user.click(screen.getByRole("button", { name: "Tải backlink" }));
-    await screen.findByText("75.0%");
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-
-    rerender(<SerankingPanel domain="other.com" />);
-
-    const resetButton = await screen.findByRole("button", { name: "Tải backlink" });
-    expect(resetButton).toBeEnabled();
-    expect(screen.queryByText("75.0%")).not.toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
